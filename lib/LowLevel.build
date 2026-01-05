@@ -54,6 +54,7 @@ The fragments below allow to select the desired implementation of the permutatio
 * K1600x2-AVX512-u12: same as K1600x2-AVX512-u4, but with 12 rounds unrolled
 * K1600x2-AVX512-ua: same as K1600x2-AVX512-u4, but with all rounds unrolled
 * K1600x2-ARMv7A-NEON: an assembly-optimized implementation for ARMv7A using NEON
+* K1600x2-ARMv8A: an assembly-optimized implementation for ARMv8A (AArch64) using NEON
 
 # For Keccak-p[1600]×4:
 
@@ -365,6 +366,11 @@ The fragments below allow to select the desired implementation of the permutatio
         <gas>-mfpu=neon</gas>
         <s>lib/low/KeccakP-1600-times2/ARMv7A-NEON/KeccakP-1600-inplace-pl2-armv7a-neon-le-gcc.s</s>
         <h>lib/low/KeccakP-1600-times2/ARMv7A-NEON/KeccakP-1600-times2-SnP.h</h>
+    </fragment>
+
+    <fragment name="K1600x2-ARMv8A" inherits="K1600x2">
+        <s>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-inplace-pl2-armv8a-neon.s</s>
+        <h>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-SnP.h</h>
     </fragment>
 
     <!-- Keccak-p[1600]×4 -->
