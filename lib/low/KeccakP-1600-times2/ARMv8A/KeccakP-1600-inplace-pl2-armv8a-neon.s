@@ -1160,6 +1160,11 @@ KeccakP1600times2_PermuteAll_4rounds:
 KeccakP1600times2_PermuteAll:
     stp     x19, x20, [sp, #-16]!
     stp     x21, x22, [sp, #-16]!
+    // Save callee-saved NEON registers v8-v15 (AArch64 ABI requirement)
+    stp     d8, d9, [sp, #-16]!
+    stp     d10, d11, [sp, #-16]!
+    stp     d12, d13, [sp, #-16]!
+    stp     d14, d15, [sp, #-16]!
     sub     sp, sp, #(4*16+16)          // allocate 4 Q regs temp space + alignment
     mov     x3, x0
     add     x5, sp, #16                 // x5 points to temp space (aligned)
@@ -1241,6 +1246,11 @@ KeccakP1600times2_PermuteAll_Round2:
     KeccakP_ThetaRhoPiChi4     _sa,  -1,  -1,  -1,  -1, _se-_sa, _ba // _sa, _se, _si, _so, _su
     bne     KeccakP1600times2_PermuteAll_RoundLoop
     add     sp, sp, #(4*16+16)          // free temp space
+    // Restore callee-saved NEON registers v8-v15
+    ldp     d14, d15, [sp], #16
+    ldp     d12, d13, [sp], #16
+    ldp     d10, d11, [sp], #16
+    ldp     d8, d9, [sp], #16
     ldp     x21, x22, [sp], #16
     ldp     x19, x20, [sp], #16
     ret
@@ -1252,6 +1262,11 @@ KeccakP1600times2_PermuteAll_Round2:
 KeccakP1600times2_PermuteAll_6rounds_body:
     stp     x19, x20, [sp, #-16]!
     stp     x21, x22, [sp, #-16]!
+    // Save callee-saved NEON registers v8-v15 (AArch64 ABI requirement)
+    stp     d8, d9, [sp, #-16]!
+    stp     d10, d11, [sp, #-16]!
+    stp     d12, d13, [sp, #-16]!
+    stp     d14, d15, [sp, #-16]!
     sub     sp, sp, #(4*16+16)
     add     x5, sp, #16
 
