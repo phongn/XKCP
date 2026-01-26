@@ -19,6 +19,7 @@ Please refer to PlSnP-documentation.h for more details.
 #define _KeccakP_1600_times2_SnP_h_
 
 #include <stdint.h>
+#include "align.h"
 #include "config.h"
 #include "PlSnP-common.h"
 

@@ -320,9 +320,8 @@
     .if \next == 16
     ld1         { \qreg }, [x3], #16
     .else
-    add         x4, x3, #\next
-    ld1         { \qreg }, [x3], #\next
-    mov         x3, x4
+    ld1         { \qreg }, [x3]
+    add         x3, x3, #\next
     .endif
     .endm
 
@@ -330,9 +329,8 @@
     .if \next == 16
     st1         { \qreg }, [x3], #16
     .else
-    add         x4, x3, #\next
-    st1         { \qreg }, [x3], #\next
-    mov         x3, x4
+    st1         { \qreg }, [x3]
+    add         x3, x3, #\next
     .endif
     .endm
 
@@ -442,32 +440,32 @@
     mov     x4, #\next
     .endif
 
-    m_ld    \Bb1,   \next
+    m_ld    \Bb1\().2d,   \next
     m_pls   \ofs2
-    m_ld    \Bb2,   \next
+    m_ld    \Bb2\().2d,   \next
     m_pls   \ofs3
-    eor     v15.16b, v5.16b, \Bb1
-    m_ld    \Bb3,   \next
+    eor     v15.16b, v5.16b, \Bb1\().16b
+    m_ld    \Bb3\().2d,   \next
     m_pls   \ofs4
-    eor     v6.16b, v6.16b, \Bb2
-    m_ld    \Bb4,   \next
+    eor     v6.16b, v6.16b, \Bb2\().16b
+    m_ld    \Bb4\().2d,   \next
     m_pls   \ofs5
-    eor     v7.16b, v7.16b, \Bb3
-    m_ld    \Bb5,   \next
-    eor     v8.16b, v8.16b, \Bb4
-    eor     v9.16b, v9.16b, \Bb5
+    eor     v7.16b, v7.16b, \Bb3\().16b
+    m_ld    \Bb5\().2d,   \next
+    eor     v8.16b, v8.16b, \Bb4\().16b
+    eor     v9.16b, v9.16b, \Bb5\().16b
 
-    shl     \Bb1, v15.2d, #\Rr1
-    shl     \Bb2, v6.2d, #\Rr2
-    shl     \Bb3, v7.2d, #\Rr3
-    shl     \Bb4, v8.2d, #\Rr4
-    shl     \Bb5, v9.2d, #\Rr5
+    shl     \Bb1\().2d, v15.2d, #\Rr1
+    shl     \Bb2\().2d, v6.2d, #\Rr2
+    shl     \Bb3\().2d, v7.2d, #\Rr3
+    shl     \Bb4\().2d, v8.2d, #\Rr4
+    shl     \Bb5\().2d, v9.2d, #\Rr5
 
-    sri     \Bb1, v15.2d, #64-\Rr1
-    sri     \Bb2, v6.2d, #64-\Rr2
-    sri     \Bb3, v7.2d, #64-\Rr3
-    sri     \Bb4, v8.2d, #64-\Rr4
-    sri     \Bb5, v9.2d, #64-\Rr5
+    sri     \Bb1\().2d, v15.2d, #64-\Rr1
+    sri     \Bb2\().2d, v6.2d, #64-\Rr2
+    sri     \Bb3\().2d, v7.2d, #64-\Rr3
+    sri     \Bb4\().2d, v8.2d, #64-\Rr4
+    sri     \Bb5\().2d, v9.2d, #64-\Rr5
 
     // argA1 = Ba ^((~Be)&  Bi ), Ca ^= argA1
     // argA2 = Be ^((~Bi)&  Bo ), Ce ^= argA2
@@ -515,15 +513,15 @@
     .endm
 
 .macro    KeccakP_ThetaRhoPiChi1 ofs1, ofs2, ofs3, ofs4, ofs5, next, ofsn1
-    KeccakP_ThetaRhoPiChi  \ofs1, \ofs2, \ofs3, \ofs4, \ofs5, \next, \ofsn1, v12.2d, v13.2d, v14.2d, v10.2d, v11.2d,  3, 45, 61, 28, 20
+    KeccakP_ThetaRhoPiChi  \ofs1, \ofs2, \ofs3, \ofs4, \ofs5, \next, \ofsn1, v12, v13, v14, v10, v11,  3, 45, 61, 28, 20
     .endm
 
 .macro    KeccakP_ThetaRhoPiChi2 ofs1, ofs2, ofs3, ofs4, ofs5, next, ofsn1
-    KeccakP_ThetaRhoPiChi  \ofs1, \ofs2, \ofs3, \ofs4, \ofs5, \next, \ofsn1, v14.2d, v10.2d, v11.2d, v12.2d, v13.2d, 18,  1,  6, 25,  8
+    KeccakP_ThetaRhoPiChi  \ofs1, \ofs2, \ofs3, \ofs4, \ofs5, \next, \ofsn1, v14, v10, v11, v12, v13, 18,  1,  6, 25,  8
     .endm
 
 .macro    KeccakP_ThetaRhoPiChi3 ofs1, ofs2, ofs3, ofs4, ofs5, next, ofsn1
-    KeccakP_ThetaRhoPiChi  \ofs1, \ofs2, \ofs3, \ofs4, \ofs5, \next, \ofsn1, v11.2d, v12.2d, v13.2d, v14.2d, v10.2d, 36, 10, 15, 56, 27
+    KeccakP_ThetaRhoPiChi  \ofs1, \ofs2, \ofs3, \ofs4, \ofs5, \next, \ofsn1, v11, v12, v13, v14, v10, 36, 10, 15, 56, 27
     .endm
 
 .macro    KeccakP_ThetaRhoPiChi4 ofs1, ofs2, ofs3, ofs4, ofs5, next, ofsn1
@@ -599,8 +597,8 @@
 // void KeccakP1600times2_StaticInitialize( void )
 //
 .align 8
-.global KeccakP1600times2_StaticInitialize
-KeccakP1600times2_StaticInitialize:
+.global _KeccakP1600times2_StaticInitialize
+_KeccakP1600times2_StaticInitialize:
     ret
 
 
@@ -609,19 +607,27 @@ KeccakP1600times2_StaticInitialize:
 // void KeccakP1600times2_InitializeAll( KeccakP1600times2_states *states )
 //
 .align 8
-.global KeccakP1600times2_InitializeAll
-KeccakP1600times2_InitializeAll:
+.global _KeccakP1600times2_InitializeAll
+_KeccakP1600times2_InitializeAll:
     movi    v0.2d, #0
     movi    v1.2d, #0
     movi    v2.2d, #0
     movi    v3.2d, #0
-    stp     q0, q1, [x0], #32       // 4 lanes at a time
-    stp     q2, q3, [x0], #32       // 8
-    stp     q0, q1, [x0], #32       // 12
-    stp     q2, q3, [x0], #32       // 16
-    stp     q0, q1, [x0], #32       // 20
-    stp     q2, q3, [x0], #32       // 24
-    st1     { v0.2d }, [x0]         // 25 (last two lanes)
+    // State is 25 lane pairs × 16 bytes = 400 bytes
+    // Store 64 bytes at a time (4 Q registers)
+    stp     q0, q1, [x0], #32       // 32 bytes
+    stp     q2, q3, [x0], #32       // 64 bytes
+    stp     q0, q1, [x0], #32       // 96 bytes
+    stp     q2, q3, [x0], #32       // 128 bytes
+    stp     q0, q1, [x0], #32       // 160 bytes
+    stp     q2, q3, [x0], #32       // 192 bytes
+    stp     q0, q1, [x0], #32       // 224 bytes
+    stp     q2, q3, [x0], #32       // 256 bytes
+    stp     q0, q1, [x0], #32       // 288 bytes
+    stp     q2, q3, [x0], #32       // 320 bytes
+    stp     q0, q1, [x0], #32       // 352 bytes
+    stp     q2, q3, [x0], #32       // 384 bytes
+    st1     { v0.2d }, [x0]         // 400 bytes (last lane pair)
     ret
 
 
@@ -630,8 +636,8 @@ KeccakP1600times2_InitializeAll:
 // void KeccakP1600times2_AddByte( KeccakP1600times2_states *states, unsigned int instanceIndex, unsigned char byte, unsigned int offset )
 //
 .align 8
-.global KeccakP1600times2_AddByte
-KeccakP1600times2_AddByte:
+.global _KeccakP1600times2_AddByte
+_KeccakP1600times2_AddByte:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     lsr     x1, x3, #3                  // states += (offset & ~7) * 2
     add     x0, x0, x1, lsl #4
@@ -649,8 +655,8 @@ KeccakP1600times2_AddByte:
 //                                   unsigned int offset, unsigned int length )
 //
 .align 8
-.global KeccakP1600times2_AddBytes
-KeccakP1600times2_AddBytes:
+.global _KeccakP1600times2_AddBytes
+_KeccakP1600times2_AddBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w4, KeccakP1600times2_AddBytes_Exit
     lsr     x5, x3, #3                  // states += (offset & ~7) * 2
@@ -699,8 +705,8 @@ KeccakP1600times2_AddBytes_Exit:
 // void KeccakP1600times2_AddLanesAll( KeccakP1600times2_states *states, const unsigned char *data, unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
-.global KeccakP1600times2_AddLanesAll
-KeccakP1600times2_AddLanesAll:
+.global _KeccakP1600times2_AddLanesAll
+_KeccakP1600times2_AddLanesAll:
     cbz     w2, KeccakP1600times2_AddLanesAll_Exit
     add     x3, x1, x3, lsl #3      // x3: data + 8 * laneOffset
 KeccakP1600times2_AddLanesAll_Loop:
@@ -724,8 +730,8 @@ KeccakP1600times2_AddLanesAll_Exit:
 //                                   unsigned int offset, unsigned int length )
 //
 .align 8
-.global KeccakP1600times2_OverwriteBytes
-KeccakP1600times2_OverwriteBytes:
+.global _KeccakP1600times2_OverwriteBytes
+_KeccakP1600times2_OverwriteBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w4, KeccakP1600times2_OverwriteBytes_Exit
     lsr     x5, x3, #3                  // states += (offset & ~7) * 2
@@ -768,8 +774,8 @@ KeccakP1600times2_OverwriteBytes_Exit:
 // KeccakP1600times2_OverwriteLanesAll( KeccakP1600times2_states *states, const unsigned char *data, unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
-.global KeccakP1600times2_OverwriteLanesAll
-KeccakP1600times2_OverwriteLanesAll:
+.global _KeccakP1600times2_OverwriteLanesAll
+_KeccakP1600times2_OverwriteLanesAll:
     cbz     w2, KeccakP1600times2_OverwriteLanesAll_Exit
     tst     x1, #7
     bne     KeccakP1600times2_OverwriteLanesAll_Unaligned
@@ -810,8 +816,8 @@ KeccakP1600times2_OverwriteLanesAll_Exit:
 // void KeccakP1600times2_OverwriteWithZeroes( KeccakP1600times2_states *states, unsigned int instanceIndex, unsigned int byteCount )
 //
 .align 8
-.global KeccakP1600times2_OverwriteWithZeroes
-KeccakP1600times2_OverwriteWithZeroes:
+.global _KeccakP1600times2_OverwriteWithZeroes
+_KeccakP1600times2_OverwriteWithZeroes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     lsr     x1, x2, #3                  // x1: laneCount
     cbz     x1, KeccakP1600times2_OverwriteWithZeroes_Bytes
@@ -839,8 +845,8 @@ KeccakP1600times2_OverwriteWithZeroes_Exit:
 //                                   unsigned int offset, unsigned int length )
 //
 .align 8
-.global KeccakP1600times2_ExtractBytes
-KeccakP1600times2_ExtractBytes:
+.global _KeccakP1600times2_ExtractBytes
+_KeccakP1600times2_ExtractBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w4, KeccakP1600times2_ExtractBytes_Exit
     lsr     x5, x3, #3                  // states += (offset & ~7) * 2
@@ -883,8 +889,8 @@ KeccakP1600times2_ExtractBytes_Exit:
 // void KeccakP1600times2_ExtractLanesAll( const KeccakP1600times2_states *states, unsigned char *data, unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
-.global KeccakP1600times2_ExtractLanesAll
-KeccakP1600times2_ExtractLanesAll:
+.global _KeccakP1600times2_ExtractLanesAll
+_KeccakP1600times2_ExtractLanesAll:
     cbz     w2, KeccakP1600times2_ExtractLanesAll_Exit
     tst     x1, #7
     bne     KeccakP1600times2_ExtractLanesAll_Unaligned
@@ -927,8 +933,8 @@ KeccakP1600times2_ExtractLanesAll_Exit:
 //                                           unsigned int offset, unsigned int length )
 //
 .align 8
-.global KeccakP1600times2_ExtractAndAddBytes
-KeccakP1600times2_ExtractAndAddBytes:
+.global _KeccakP1600times2_ExtractAndAddBytes
+_KeccakP1600times2_ExtractAndAddBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w5, KeccakP1600times2_ExtractAndAddBytes_Exit
     lsr     x6, x4, #3                  // states += (offset & ~7) * 2
@@ -979,8 +985,8 @@ KeccakP1600times2_ExtractAndAddBytes_Exit:
 //                                               unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
-.global KeccakP1600times2_ExtractAndAddLanesAll
-KeccakP1600times2_ExtractAndAddLanesAll:
+.global _KeccakP1600times2_ExtractAndAddLanesAll
+_KeccakP1600times2_ExtractAndAddLanesAll:
     cbz     w3, KeccakP1600times2_ExtractAndAddLanesAll_Exit
     orr     x12, x1, x2
     tst     x12, #7                     // unaligned access if input or output unaligned
@@ -1041,8 +1047,8 @@ KeccakP1600times2_ExtractAndAddLanesAll_Exit:
 // void KeccakP1600times2_PermuteAll_6rounds( KeccakP1600times2_states *states )
 //
 .align 8
-.global KeccakP1600times2_PermuteAll_6rounds
-KeccakP1600times2_PermuteAll_6rounds:
+.global _KeccakP1600times2_PermuteAll_6rounds
+_KeccakP1600times2_PermuteAll_6rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants6
     mov     w2, #8
     b       KeccakP1600times2_PermuteAll_6rounds_body
@@ -1083,8 +1089,8 @@ KeccakP1600times2_Permute_RoundConstants4:
 // void KeccakP1600times2_PermuteAll_24rounds( KeccakP1600times2_states *states )
 //
 .align 8
-.global KeccakP1600times2_PermuteAll_24rounds
-KeccakP1600times2_PermuteAll_24rounds:
+.global _KeccakP1600times2_PermuteAll_24rounds
+_KeccakP1600times2_PermuteAll_24rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants24
     mov     w2, #24
     b       KeccakP1600times2_PermuteAll
@@ -1095,8 +1101,8 @@ KeccakP1600times2_PermuteAll_24rounds:
 // void KeccakP1600times2_PermuteAll_12rounds( KeccakP1600times2_states *states )
 //
 .align 8
-.global KeccakP1600times2_PermuteAll_12rounds
-KeccakP1600times2_PermuteAll_12rounds:
+.global _KeccakP1600times2_PermuteAll_12rounds
+_KeccakP1600times2_PermuteAll_12rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants12
     mov     w2, #12
     b       KeccakP1600times2_PermuteAll
@@ -1107,8 +1113,8 @@ KeccakP1600times2_PermuteAll_12rounds:
 // void KeccakP1600times2_PermuteAll_4rounds( KeccakP1600times2_states *states )
 //
 .align 8
-.global KeccakP1600times2_PermuteAll_4rounds
-KeccakP1600times2_PermuteAll_4rounds:
+.global _KeccakP1600times2_PermuteAll_4rounds
+_KeccakP1600times2_PermuteAll_4rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants4
     mov     w2, #4
     b       KeccakP1600times2_PermuteAll
@@ -1217,117 +1223,125 @@ KeccakP1600times2_PermuteAll_6rounds_body:
     sub     sp, sp, #(4*16+16)
     add     x5, sp, #16
 
-    // Load and reshuffle state for 6-round special case
-    // ba
-    // be = me, me = be
-    // bi = gi, gi = bi
-    // bo = so, so = bo
-    // bu = ku, ku = bu
-
-    // ga = sa, sa = ga
-    // ge = ke, ke = ge
-    // go = mo, mo = go
-    // gu
-
-    // ka = ma, ma = ka
-    // ki = si, si = ki
-    // ko
-
-    // mu = su, su = mu
-    // mi
-    // se
-
-    //PrepareTheta
-    // Ca = ba ^ ga ^ ka ^ ma ^ sa
-    // Ce = be ^ ge ^ ke ^ me ^ se
-    // Ci = bi ^ gi ^ ki ^ mi ^ si
-    // Co = bo ^ go ^ ko ^ mo ^ so
-    // Cu = bu ^ gu ^ ku ^ mu ^ su
+    // State reshuffling and PrepareTheta for 6-round special case
+    // Following ARMv7A structure: x0=state base, x3=temp ptr, x4=write ptr
+    
+    // Load ba be bi bo bu
     ldp     q0, q1, [x0, #_ba]          // ba be
     ldp     q2, q3, [x0, #_bi]          // bi bo
-    ldp     q4, q16, [x0, #_bu]         // bu ga
-
-    ld1     { v6.2d }, [x0], #_me       // move to me
-    ld1     { v17.2d }, [x0]            // me
-    str     q1, [x0], #-_me+_be         // store be at me, back to be
-    str     q17, [x0], #_gi-_be         // store me at be, move to gi
-    eor     v1.16b, v1.16b, v17.16b     // be ^ me
-
-    ld1     { v18.2d }, [x0]            // gi
-    str     q2, [x0], #-_gi+_bi         // store bi at gi, back to bi
-    str     q18, [x0], #_so-_bi         // store gi at bi, move to so
-    eor     v2.16b, v2.16b, v18.16b     // bi ^ gi
-
-    ld1     { v19.2d }, [x0]            // so
-    str     q3, [x0], #-_so+_bo         // store bo at so, back to bo
-    str     q19, [x0], #_ku-_bo         // store so at bo, move to ku
-    eor     v3.16b, v3.16b, v19.16b     // bo ^ so
-
-    ld1     { v20.2d }, [x0]            // ku
-    str     q4, [x0], #-_ku+_bu         // store bu at ku, back to bu
-    str     q20, [x0]                   // store ku at bu
-    eor     v4.16b, v4.16b, v20.16b     // bu ^ ku
-
-    add     x0, x0, #_sa-_bu
-    ld1     { v21.2d }, [x0]            // sa
-    str     q16, [x0], #-_sa+_ga        // store ga at sa, back to ga
-    str     q21, [x0], #_ke-_ga         // store sa at ga, move to ke
-    eor     v0.16b, v0.16b, v21.16b     // ba ^ sa
-    eor     v0.16b, v0.16b, v16.16b     // ^ ga
-
-    ld1     { v22.2d }, [x0]            // ke
-    add     x3, x0, #_ge-_ke
-    ld1     { v23.2d }, [x3]            // ge
-    str     q23, [x0], #_mo-_ke         // store ge at ke, move to mo
-    str     q22, [x3]                   // store ke at ge
-    eor     v1.16b, v1.16b, v22.16b     // ^ ke
-    eor     v1.16b, v1.16b, v23.16b     // ^ ge
-
-    ld1     { v24.2d }, [x0]            // mo
-    add     x3, x0, #_go-_mo
-    ld1     { v25.2d }, [x3]            // go
-    str     q25, [x0], #-_mo+_ma        // store go at mo, back to ma
-    str     q24, [x3]                   // store mo at go
-    eor     v3.16b, v3.16b, v24.16b     // ^ mo
-    eor     v3.16b, v3.16b, v25.16b     // ^ go
-    add     x3, x0, #_gu-_ma
-    ld1     { v26.2d }, [x3]            // gu
-    eor     v4.16b, v4.16b, v26.16b     // ^ gu
-
-    ld1     { v27.2d }, [x0]            // ma (ka position)
-    add     x3, x0, #_ka-_ma
-    ld1     { v28.2d }, [x3]            // ka
-    str     q28, [x0], #_ki-_ma         // store ka at ma, move to ki
-    str     q27, [x3]                   // store ma at ka
-    eor     v0.16b, v0.16b, v27.16b     // ^ ma
-    eor     v0.16b, v0.16b, v28.16b     // ^ ka
-
-    ld1     { v29.2d }, [x0]            // ki
-    add     x3, x0, #_si-_ki
-    ld1     { v30.2d }, [x3]            // si
-    str     q30, [x0], #_ko-_ki         // store si at ki, move to ko
-    str     q29, [x3]                   // store ki at si
-    eor     v2.16b, v2.16b, v29.16b     // ^ ki
-    eor     v2.16b, v2.16b, v30.16b     // ^ si
-    ld1     { v31.2d }, [x0]            // ko
-    eor     v3.16b, v3.16b, v31.16b     // ^ ko
-
-    add     x0, x0, #_mu-_ko
-    ld1     { v16.2d }, [x0]            // mu
-    add     x3, x0, #_su-_mu
-    ld1     { v17.2d }, [x3]            // su
-    str     q17, [x0], #_mi-_mu         // store su at mu, move to mi
-    str     q16, [x3]                   // store mu at su
-    eor     v4.16b, v4.16b, v16.16b     // ^ mu
-    eor     v4.16b, v4.16b, v17.16b     // ^ su
-
-    ld1     { v18.2d }, [x0]            // mi
-    eor     v2.16b, v2.16b, v18.16b     // ^ mi
-    add     x3, x0, #_se-_mi
-    ld1     { v19.2d }, [x3]            // se
-    eor     v1.16b, v1.16b, v19.16b     // ^ se
-
+    add     x3, x0, #_bu
+    ld1     { v4.2d }, [x3]             // bu
+    
+    // Load me, swap be<->me, Ce = be ^ me
+    add     x3, x0, #_me
+    ld1     { v6.2d }, [x3]             // me
+    str     q1, [x3]                    // store be at me
+    add     x4, x0, #_be
+    str     q6, [x4], #16               // store me at be, x4 advances
+    eor     v1.16b, v1.16b, v6.16b      // Ce = be ^ me
+    
+    // Load ga ge gi go gu
+    add     x3, x0, #_ga
+    ldp     q10, q11, [x3]              // ga ge
+    ldp     q12, q13, [x3, #32]         // gi go
+    add     x3, x3, #64
+    ld1     { v14.2d }, [x3]            // gu
+    
+    // Swap bi<->gi, Ci = bi ^ gi
+    add     x3, x0, #_gi
+    str     q2, [x3]                    // store bi at gi
+    str     q12, [x4], #16              // store gi at bi (was at x4=_bi), x4 advances
+    eor     v2.16b, v2.16b, v12.16b     // Ci = bi ^ gi
+    
+    // Load so, swap bo<->so, Co = bo ^ so
+    add     x3, x0, #_so
+    ld1     { v8.2d }, [x3]             // so
+    str     q3, [x3]                    // store bo at so
+    str     q8, [x4], #16               // store so at bo (x4=_bo), x4 advances
+    eor     v3.16b, v3.16b, v8.16b      // Co = bo ^ so
+    
+    // Load ku, swap bu<->ku, Cu = bu ^ ku
+    add     x3, x0, #_ku
+    ld1     { v9.2d }, [x3]             // ku
+    str     q4, [x3]                    // store bu at ku
+    str     q9, [x4]                    // store ku at bu (x4=_bu)
+    eor     v4.16b, v4.16b, v9.16b      // Cu = bu ^ ku
+    
+    // Load sa, swap ga<->sa, Ca = ba ^ sa ^ ga
+    add     x3, x0, #_sa
+    ld1     { v5.2d }, [x3]             // sa
+    str     q10, [x3]                   // store ga at sa
+    add     x4, x0, #_ga
+    str     q5, [x4], #16               // store sa at ga, x4 advances to ge
+    eor     v0.16b, v0.16b, v5.16b      // Ca = ba ^ sa
+    eor     v0.16b, v0.16b, v10.16b     // Ca = ba ^ sa ^ ga
+    
+    // Load ke, swap ge<->ke, Ce ^= ge ^ ke
+    add     x3, x0, #_ke
+    ld1     { v6.2d }, [x3]             // ke
+    str     q11, [x3]                   // store ge at ke
+    str     q6, [x4]                    // store ke at ge (x4=_ge)
+    eor     v1.16b, v1.16b, v6.16b      // Ce ^= ke
+    eor     v1.16b, v1.16b, v11.16b     // Ce ^= ge
+    
+    // Load mo, swap go<->mo, Co ^= go ^ mo
+    add     x3, x0, #_mo
+    ld1     { v8.2d }, [x3]             // mo
+    str     q13, [x3]                   // store go at mo
+    add     x4, x0, #_go
+    str     q8, [x4]                    // store mo at go
+    eor     v3.16b, v3.16b, v8.16b      // Co ^= mo
+    eor     v3.16b, v3.16b, v13.16b     // Co ^= go
+    
+    // Cu ^= gu
+    eor     v4.16b, v4.16b, v14.16b     // Cu ^= gu
+    
+    // Load ka and ma, swap ka<->ma, Ca ^= ka ^ ma
+    add     x4, x0, #_ka
+    ld1     { v10.2d }, [x4]            // ka
+    add     x3, x0, #_ma
+    ld1     { v5.2d }, [x3]             // ma
+    str     q10, [x3]                   // store ka at ma
+    str     q5, [x4]                    // store ma at ka
+    eor     v0.16b, v0.16b, v5.16b      // Ca ^= ma
+    eor     v0.16b, v0.16b, v10.16b     // Ca ^= ka
+    
+    // Load ki ko
+    add     x4, x0, #_ki
+    ldp     q12, q13, [x4]              // ki ko
+    
+    // Load si, swap ki<->si, Ci ^= ki ^ si
+    add     x3, x0, #_si
+    ld1     { v7.2d }, [x3]             // si
+    str     q12, [x3]                   // store ki at si
+    str     q7, [x4]                    // store si at ki
+    eor     v2.16b, v2.16b, v7.16b      // Ci ^= si
+    eor     v2.16b, v2.16b, v12.16b     // Ci ^= ki
+    
+    // Co ^= ko
+    eor     v3.16b, v3.16b, v13.16b     // Co ^= ko
+    
+    // Load mu and su, swap mu<->su, Cu ^= mu ^ su
+    add     x4, x0, #_mu
+    ld1     { v14.2d }, [x4]            // mu
+    add     x3, x0, #_su
+    ld1     { v9.2d }, [x3]             // su
+    str     q14, [x3]                   // store mu at su
+    str     q9, [x4]                    // store su at mu
+    eor     v4.16b, v4.16b, v9.16b      // Cu ^= su
+    eor     v4.16b, v4.16b, v14.16b     // Cu ^= mu
+    
+    // Load mi, Ci ^= mi
+    add     x4, x0, #_mi
+    ld1     { v12.2d }, [x4]            // mi
+    eor     v2.16b, v2.16b, v12.16b     // Ci ^= mi
+    
+    // Load se, Ce ^= se
+    add     x3, x0, #_se
+    ld1     { v6.2d }, [x3]             // se
+    eor     v1.16b, v1.16b, v6.16b      // Ce ^= se
+    
+    // Set x3 = x0 (state base) and jump to Round2
     mov     x3, x0
-    sub     x0, x0, #_mi
     b       KeccakP1600times2_PermuteAll_Round2
 
