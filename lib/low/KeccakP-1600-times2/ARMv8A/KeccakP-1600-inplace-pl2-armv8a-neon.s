@@ -597,8 +597,10 @@
 // void KeccakP1600times2_StaticInitialize( void )
 //
 .align 8
+.global KeccakP1600times2_StaticInitialize
 .global _KeccakP1600times2_StaticInitialize
-_KeccakP1600times2_StaticInitialize:
+.set _KeccakP1600times2_StaticInitialize, KeccakP1600times2_StaticInitialize
+KeccakP1600times2_StaticInitialize:
     ret
 
 
@@ -607,8 +609,10 @@ _KeccakP1600times2_StaticInitialize:
 // void KeccakP1600times2_InitializeAll( KeccakP1600times2_states *states )
 //
 .align 8
+.global KeccakP1600times2_InitializeAll
 .global _KeccakP1600times2_InitializeAll
-_KeccakP1600times2_InitializeAll:
+.set _KeccakP1600times2_InitializeAll, KeccakP1600times2_InitializeAll
+KeccakP1600times2_InitializeAll:
     movi    v0.2d, #0
     movi    v1.2d, #0
     movi    v2.2d, #0
@@ -636,8 +640,10 @@ _KeccakP1600times2_InitializeAll:
 // void KeccakP1600times2_AddByte( KeccakP1600times2_states *states, unsigned int instanceIndex, unsigned char byte, unsigned int offset )
 //
 .align 8
+.global KeccakP1600times2_AddByte
 .global _KeccakP1600times2_AddByte
-_KeccakP1600times2_AddByte:
+.set _KeccakP1600times2_AddByte, KeccakP1600times2_AddByte
+KeccakP1600times2_AddByte:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     lsr     x1, x3, #3                  // states += (offset & ~7) * 2
     add     x0, x0, x1, lsl #4
@@ -655,8 +661,10 @@ _KeccakP1600times2_AddByte:
 //                                   unsigned int offset, unsigned int length )
 //
 .align 8
+.global KeccakP1600times2_AddBytes
 .global _KeccakP1600times2_AddBytes
-_KeccakP1600times2_AddBytes:
+.set _KeccakP1600times2_AddBytes, KeccakP1600times2_AddBytes
+KeccakP1600times2_AddBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w4, KeccakP1600times2_AddBytes_Exit
     lsr     x5, x3, #3                  // states += (offset & ~7) * 2
@@ -705,8 +713,10 @@ KeccakP1600times2_AddBytes_Exit:
 // void KeccakP1600times2_AddLanesAll( KeccakP1600times2_states *states, const unsigned char *data, unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
+.global KeccakP1600times2_AddLanesAll
 .global _KeccakP1600times2_AddLanesAll
-_KeccakP1600times2_AddLanesAll:
+.set _KeccakP1600times2_AddLanesAll, KeccakP1600times2_AddLanesAll
+KeccakP1600times2_AddLanesAll:
     cbz     w2, KeccakP1600times2_AddLanesAll_Exit
     add     x3, x1, x3, lsl #3      // x3: data + 8 * laneOffset
 KeccakP1600times2_AddLanesAll_Loop:
@@ -730,8 +740,10 @@ KeccakP1600times2_AddLanesAll_Exit:
 //                                   unsigned int offset, unsigned int length )
 //
 .align 8
+.global KeccakP1600times2_OverwriteBytes
 .global _KeccakP1600times2_OverwriteBytes
-_KeccakP1600times2_OverwriteBytes:
+.set _KeccakP1600times2_OverwriteBytes, KeccakP1600times2_OverwriteBytes
+KeccakP1600times2_OverwriteBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w4, KeccakP1600times2_OverwriteBytes_Exit
     lsr     x5, x3, #3                  // states += (offset & ~7) * 2
@@ -774,8 +786,10 @@ KeccakP1600times2_OverwriteBytes_Exit:
 // KeccakP1600times2_OverwriteLanesAll( KeccakP1600times2_states *states, const unsigned char *data, unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
+.global KeccakP1600times2_OverwriteLanesAll
 .global _KeccakP1600times2_OverwriteLanesAll
-_KeccakP1600times2_OverwriteLanesAll:
+.set _KeccakP1600times2_OverwriteLanesAll, KeccakP1600times2_OverwriteLanesAll
+KeccakP1600times2_OverwriteLanesAll:
     cbz     w2, KeccakP1600times2_OverwriteLanesAll_Exit
     tst     x1, #7
     bne     KeccakP1600times2_OverwriteLanesAll_Unaligned
@@ -816,8 +830,10 @@ KeccakP1600times2_OverwriteLanesAll_Exit:
 // void KeccakP1600times2_OverwriteWithZeroes( KeccakP1600times2_states *states, unsigned int instanceIndex, unsigned int byteCount )
 //
 .align 8
+.global KeccakP1600times2_OverwriteWithZeroes
 .global _KeccakP1600times2_OverwriteWithZeroes
-_KeccakP1600times2_OverwriteWithZeroes:
+.set _KeccakP1600times2_OverwriteWithZeroes, KeccakP1600times2_OverwriteWithZeroes
+KeccakP1600times2_OverwriteWithZeroes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     lsr     x1, x2, #3                  // x1: laneCount
     cbz     x1, KeccakP1600times2_OverwriteWithZeroes_Bytes
@@ -845,8 +861,10 @@ KeccakP1600times2_OverwriteWithZeroes_Exit:
 //                                   unsigned int offset, unsigned int length )
 //
 .align 8
+.global KeccakP1600times2_ExtractBytes
 .global _KeccakP1600times2_ExtractBytes
-_KeccakP1600times2_ExtractBytes:
+.set _KeccakP1600times2_ExtractBytes, KeccakP1600times2_ExtractBytes
+KeccakP1600times2_ExtractBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w4, KeccakP1600times2_ExtractBytes_Exit
     lsr     x5, x3, #3                  // states += (offset & ~7) * 2
@@ -889,8 +907,10 @@ KeccakP1600times2_ExtractBytes_Exit:
 // void KeccakP1600times2_ExtractLanesAll( const KeccakP1600times2_states *states, unsigned char *data, unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
+.global KeccakP1600times2_ExtractLanesAll
 .global _KeccakP1600times2_ExtractLanesAll
-_KeccakP1600times2_ExtractLanesAll:
+.set _KeccakP1600times2_ExtractLanesAll, KeccakP1600times2_ExtractLanesAll
+KeccakP1600times2_ExtractLanesAll:
     cbz     w2, KeccakP1600times2_ExtractLanesAll_Exit
     tst     x1, #7
     bne     KeccakP1600times2_ExtractLanesAll_Unaligned
@@ -933,8 +953,10 @@ KeccakP1600times2_ExtractLanesAll_Exit:
 //                                           unsigned int offset, unsigned int length )
 //
 .align 8
+.global KeccakP1600times2_ExtractAndAddBytes
 .global _KeccakP1600times2_ExtractAndAddBytes
-_KeccakP1600times2_ExtractAndAddBytes:
+.set _KeccakP1600times2_ExtractAndAddBytes, KeccakP1600times2_ExtractAndAddBytes
+KeccakP1600times2_ExtractAndAddBytes:
     add     x0, x0, x1, lsl #3          // states += 8 * instanceIndex
     cbz     w5, KeccakP1600times2_ExtractAndAddBytes_Exit
     lsr     x6, x4, #3                  // states += (offset & ~7) * 2
@@ -985,8 +1007,10 @@ KeccakP1600times2_ExtractAndAddBytes_Exit:
 //                                               unsigned int laneCount, unsigned int laneOffset )
 //
 .align 8
+.global KeccakP1600times2_ExtractAndAddLanesAll
 .global _KeccakP1600times2_ExtractAndAddLanesAll
-_KeccakP1600times2_ExtractAndAddLanesAll:
+.set _KeccakP1600times2_ExtractAndAddLanesAll, KeccakP1600times2_ExtractAndAddLanesAll
+KeccakP1600times2_ExtractAndAddLanesAll:
     cbz     w3, KeccakP1600times2_ExtractAndAddLanesAll_Exit
     orr     x12, x1, x2
     tst     x12, #7                     // unaligned access if input or output unaligned
@@ -1047,8 +1071,10 @@ KeccakP1600times2_ExtractAndAddLanesAll_Exit:
 // void KeccakP1600times2_PermuteAll_6rounds( KeccakP1600times2_states *states )
 //
 .align 8
+.global KeccakP1600times2_PermuteAll_6rounds
 .global _KeccakP1600times2_PermuteAll_6rounds
-_KeccakP1600times2_PermuteAll_6rounds:
+.set _KeccakP1600times2_PermuteAll_6rounds, KeccakP1600times2_PermuteAll_6rounds
+KeccakP1600times2_PermuteAll_6rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants6
     mov     w2, #8
     b       KeccakP1600times2_PermuteAll_6rounds_body
@@ -1089,8 +1115,10 @@ KeccakP1600times2_Permute_RoundConstants4:
 // void KeccakP1600times2_PermuteAll_24rounds( KeccakP1600times2_states *states )
 //
 .align 8
+.global KeccakP1600times2_PermuteAll_24rounds
 .global _KeccakP1600times2_PermuteAll_24rounds
-_KeccakP1600times2_PermuteAll_24rounds:
+.set _KeccakP1600times2_PermuteAll_24rounds, KeccakP1600times2_PermuteAll_24rounds
+KeccakP1600times2_PermuteAll_24rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants24
     mov     w2, #24
     b       KeccakP1600times2_PermuteAll
@@ -1101,8 +1129,10 @@ _KeccakP1600times2_PermuteAll_24rounds:
 // void KeccakP1600times2_PermuteAll_12rounds( KeccakP1600times2_states *states )
 //
 .align 8
+.global KeccakP1600times2_PermuteAll_12rounds
 .global _KeccakP1600times2_PermuteAll_12rounds
-_KeccakP1600times2_PermuteAll_12rounds:
+.set _KeccakP1600times2_PermuteAll_12rounds, KeccakP1600times2_PermuteAll_12rounds
+KeccakP1600times2_PermuteAll_12rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants12
     mov     w2, #12
     b       KeccakP1600times2_PermuteAll
@@ -1113,8 +1143,10 @@ _KeccakP1600times2_PermuteAll_12rounds:
 // void KeccakP1600times2_PermuteAll_4rounds( KeccakP1600times2_states *states )
 //
 .align 8
+.global KeccakP1600times2_PermuteAll_4rounds
 .global _KeccakP1600times2_PermuteAll_4rounds
-_KeccakP1600times2_PermuteAll_4rounds:
+.set _KeccakP1600times2_PermuteAll_4rounds, KeccakP1600times2_PermuteAll_4rounds
+KeccakP1600times2_PermuteAll_4rounds:
     adr     x1, KeccakP1600times2_Permute_RoundConstants4
     mov     w2, #4
     b       KeccakP1600times2_PermuteAll
