@@ -30,7 +30,7 @@ typedef struct {
 
 typedef KeccakP1600times2_align256SIMD128_states KeccakP1600times2_states;
 
-#define KeccakP1600times2_GetImplementation()   "64-bit optimized ARMv8A NEON assembler implementation"
+#define KeccakP1600times2_GetImplementation()   "64-bit optimized ARMv8A NEON assembler + intrinsics implementation"
 #define KeccakP1600times2_GetFeatures()         (PlSnP_Feature_Main | PlSnP_Feature_SpongeAbsorb)
 #define KeccakP1600times2_statesAlignment       32
 
