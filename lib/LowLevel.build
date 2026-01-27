@@ -369,7 +369,9 @@ The fragments below allow to select the desired implementation of the permutatio
     </fragment>
 
     <fragment name="K1600x2-ARMv8A" inherits="K1600x2">
+        <gcc>-march=armv8.2-a+crypto+dotprod+rcpc+fp16</gcc>
         <s>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-inplace-pl2-armv8a-neon.s</s>
+        <c>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-armv8a-neon.c</c>
         <h>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-SnP.h</h>
     </fragment>
 

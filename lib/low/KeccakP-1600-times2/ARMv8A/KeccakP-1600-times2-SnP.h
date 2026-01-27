@@ -19,6 +19,7 @@ Please refer to PlSnP-documentation.h for more details.
 #define _KeccakP_1600_times2_SnP_h_
 
 #include <stdint.h>
+#include <stddef.h>
 #include "align.h"
 #include "config.h"
 #include "PlSnP-common.h"
@@ -30,7 +31,7 @@ typedef struct {
 typedef KeccakP1600times2_align256SIMD128_states KeccakP1600times2_states;
 
 #define KeccakP1600times2_GetImplementation()   "64-bit optimized ARMv8A NEON assembler implementation"
-#define KeccakP1600times2_GetFeatures()         PlSnP_Feature_Main
+#define KeccakP1600times2_GetFeatures()         (PlSnP_Feature_Main | PlSnP_Feature_SpongeAbsorb)
 #define KeccakP1600times2_statesAlignment       32
 
 void KeccakP1600times2_StaticInitialize( void );
@@ -50,8 +51,8 @@ void KeccakP1600times2_ExtractLanesAll(const KeccakP1600times2_states *states, u
 void KeccakP1600times2_ExtractAndAddBytes(const KeccakP1600times2_states *states, unsigned int instanceIndex,  const unsigned char *input, unsigned char *output, unsigned int offset, unsigned int length);
 void KeccakP1600times2_ExtractAndAddLanesAll(const KeccakP1600times2_states *states, const unsigned char *input, unsigned char *output, unsigned int laneCount, unsigned int laneOffset);
 
-#define KeccakF1600times2_FastLoop_Absorb(...)          0
-#define KeccakP1600times2_12rounds_FastLoop_Absorb(...) 0
+size_t KeccakF1600times2_FastLoop_Absorb(KeccakP1600times2_states *states, unsigned int laneCount, unsigned int laneOffsetParallel, unsigned int laneOffsetSerial, const unsigned char *data, size_t dataByteLen);
+size_t KeccakP1600times2_12rounds_FastLoop_Absorb(KeccakP1600times2_states *states, unsigned int laneCount, unsigned int laneOffsetParallel, unsigned int laneOffsetSerial, const unsigned char *data, size_t dataByteLen);
 
 #define KeccakP1600times2_KravatteCompress(...)         0
 #define KeccakP1600times2_KravatteExpand(...)           0

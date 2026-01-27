@@ -183,6 +183,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
     <!-- Implementations selected for ARMv8A -->
     <fragment name="ARMv8A" inherits="K1600-plain-64bits-ua K1600x2-ARMv8A Xoodoo-plain-ua"/>
+    <!-- <fragment name="ARMv8A" inherits="K1600-plain-64bits-ua Xoodoo-plain-ua"/>  -->
 
     <!-- Implementations selected for 8-bit AVR -->
     <fragment name="AVR8" inherits="K1600-AVR8 Xoodoo-AVR8"/>
