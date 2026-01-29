@@ -20,15 +20,15 @@ Please refer to PlSnP-documentation.h for more details.
 
 #include <stdint.h>
 #include <stddef.h>
+#include <arm_neon.h>
 #include "align.h"
 #include "config.h"
 #include "PlSnP-common.h"
 
+/* Native ARMv8A NEON state: 25 128-bit vectors, each holding 2 parallel 64-bit lanes */
 typedef struct {
-    ALIGN(32) uint64_t A[25][2];
-} KeccakP1600times2_align256SIMD128_states;
-
-typedef KeccakP1600times2_align256SIMD128_states KeccakP1600times2_states;
+    ALIGN(32) uint64x2_t A[25];
+} KeccakP1600times2_states;
 
 #define KeccakP1600times2_GetImplementation()   "64-bit optimized ARMv8A NEON assembler + intrinsics implementation"
 #define KeccakP1600times2_GetFeatures()         (PlSnP_Feature_Main | PlSnP_Feature_SpongeAbsorb)

@@ -3,6 +3,7 @@ The Keccak-p permutations, designed by Guido Bertoni, Joan Daemen, Michaël Peet
 
 Implementation by Gilles Van Assche, hereby denoted as "the implementer".
 Ported to ARMv8A NEON by [contributor].
+Optimized for ARMv8A NEON by avoiding GPR-to-SIMD transfers.
 
 For more information, feedback or questions, please refer to the Keccak Team website:
 https://keccak.team/
@@ -35,18 +36,25 @@ typedef uint64x2_t V128;
 
 #define laneIndex(instanceIndex, lanePosition) ((lanePosition)*2 + instanceIndex)
 
-/* NEON intrinsic mappings */
+/* ---------------------------------------------------------------- */
+/* NEON intrinsic mappings - optimized for ARMv8A */
+
 #define ANDnu128(a, b)      vbicq_u64(b, a)           /* b AND NOT a */
 #define LOAD128(a)          vld1q_u64((const uint64_t *)&(a))
-#define CONST128_64(a)      vdupq_n_u64(a)
 #define STORE128(a, b)      vst1q_u64((uint64_t *)&(a), b)
 #define XOR128(a, b)        veorq_u64(a, b)
 #define XOReq128(a, b)      a = veorq_u64(a, b)
 #define ZERO128()           vdupq_n_u64(0)
 
-/* Load two 64-bit values from different addresses into one 128-bit vector */
-static inline V128 LOAD6464(uint64_t hi, uint64_t lo) {
-    return vcombine_u64(vcreate_u64(lo), vcreate_u64(hi));
+/* 
+ * OPTIMIZED: Load two 64-bit values from different addresses into one 128-bit vector.
+ * Uses direct SIMD loads (vld1_u64) instead of going through GPRs.
+ * This avoids expensive fmov instructions between GPR and SIMD registers.
+ */
+static inline __attribute__((always_inline)) V128 LOAD6464(const uint64_t *hi_ptr, const uint64_t *lo_ptr) {
+    uint64x1_t lo = vld1_u64(lo_ptr);
+    uint64x1_t hi = vld1_u64(hi_ptr);
+    return vcombine_u64(lo, hi);
 }
 
 /* Store low 64 bits */
@@ -62,28 +70,60 @@ static inline void STORE64H(uint64_t *a, V128 b) {
 /* 64-bit rotate left within 128-bit vector (both lanes) */
 #define ROL64in128(a, o)    vorrq_u64(vshlq_n_u64(a, o), vshrq_n_u64(a, 64-(o)))
 
-/* Optimized 8-bit and 56-bit rotations using byte extract */
-static inline V128 ROL64in128_8(V128 a) {
+/* 
+ * Optimized rotations using byte extract (vext).
+ * These are single-cycle operations on most ARM cores.
+ */
+static inline __attribute__((always_inline)) V128 ROL64in128_8(V128 a) {
+    /* Rotate left by 8 bits = rotate bytes by 1 position (extract at 15) */
     return vreinterpretq_u64_u8(vextq_u8(vreinterpretq_u8_u64(a), vreinterpretq_u8_u64(a), 15));
 }
 
-static inline V128 ROL64in128_56(V128 a) {
+static inline __attribute__((always_inline)) V128 ROL64in128_56(V128 a) {
+    /* Rotate left by 56 bits = rotate bytes by 7 positions (extract at 1) */
     return vreinterpretq_u64_u8(vextq_u8(vreinterpretq_u8_u64(a), vreinterpretq_u8_u64(a), 1));
 }
 
 #define SnP_laneLengthInBytes 8
 
 /* ---------------------------------------------------------------- */
-/* Keccak round constants */
+/* 
+ * OPTIMIZED: Pre-vectorized round constants.
+ * Instead of using vdupq_n_u64() which broadcasts a scalar (requiring GPR load + dup),
+ * we store constants as 128-bit vectors and load them directly with vld1q.
+ * For parallel x2 states, both lanes get the same constant.
+ */
 
-static const uint64_t KeccakF1600RoundConstants[24] = {
-    0x0000000000000001ULL, 0x0000000000008082ULL, 0x800000000000808aULL, 0x8000000080008000ULL,
-    0x000000000000808bULL, 0x0000000080000001ULL, 0x8000000080008081ULL, 0x8000000000008009ULL,
-    0x000000000000008aULL, 0x0000000000000088ULL, 0x0000000080008009ULL, 0x000000008000000aULL,
-    0x000000008000808bULL, 0x800000000000008bULL, 0x8000000000008089ULL, 0x8000000000008003ULL,
-    0x8000000000008002ULL, 0x8000000000000080ULL, 0x000000000000800aULL, 0x800000008000000aULL,
-    0x8000000080008081ULL, 0x8000000000008080ULL, 0x0000000080000001ULL, 0x8000000080008008ULL
+/* Round constants as 128-bit vectors (same value in both lanes) */
+static const uint64_t KeccakF1600RoundConstants_vec[24][2] __attribute__((aligned(16))) = {
+    {0x0000000000000001ULL, 0x0000000000000001ULL},
+    {0x0000000000008082ULL, 0x0000000000008082ULL},
+    {0x800000000000808aULL, 0x800000000000808aULL},
+    {0x8000000080008000ULL, 0x8000000080008000ULL},
+    {0x000000000000808bULL, 0x000000000000808bULL},
+    {0x0000000080000001ULL, 0x0000000080000001ULL},
+    {0x8000000080008081ULL, 0x8000000080008081ULL},
+    {0x8000000000008009ULL, 0x8000000000008009ULL},
+    {0x000000000000008aULL, 0x000000000000008aULL},
+    {0x0000000000000088ULL, 0x0000000000000088ULL},
+    {0x0000000080008009ULL, 0x0000000080008009ULL},
+    {0x000000008000000aULL, 0x000000008000000aULL},
+    {0x000000008000808bULL, 0x000000008000808bULL},
+    {0x800000000000008bULL, 0x800000000000008bULL},
+    {0x8000000000008089ULL, 0x8000000000008089ULL},
+    {0x8000000000008003ULL, 0x8000000000008003ULL},
+    {0x8000000000008002ULL, 0x8000000000008002ULL},
+    {0x8000000000000080ULL, 0x8000000000000080ULL},
+    {0x000000000000800aULL, 0x000000000000800aULL},
+    {0x800000008000000aULL, 0x800000008000000aULL},
+    {0x8000000080008081ULL, 0x8000000080008081ULL},
+    {0x8000000000008080ULL, 0x8000000000008080ULL},
+    {0x0000000080000001ULL, 0x0000000080000001ULL},
+    {0x8000000080008008ULL, 0x8000000080008008ULL}
 };
+
+/* Load round constant as 128-bit vector directly */
+#define CONST128_RC(i)      vld1q_u64(KeccakF1600RoundConstants_vec[i])
 
 /* ---------------------------------------------------------------- */
 /* State variable declarations */
@@ -169,6 +209,7 @@ static const uint64_t KeccakF1600RoundConstants[24] = {
     STORE128(state[24], X##su);
 
 /* --- Theta Rho Pi Chi Iota Prepare-theta --- */
+/* OPTIMIZED: Uses CONST128_RC for direct vector load of round constants */
 #define thetaRhoPiChiIotaPrepareTheta(i, A, E) \
     Da = XOR128(Cu, ROL64in128(Ce, 1)); \
     De = XOR128(Ca, ROL64in128(Ci, 1)); \
@@ -183,7 +224,7 @@ static const uint64_t KeccakF1600RoundConstants[24] = {
     XOReq128(A##ki, Di); \
     Bbi = ROL64in128(A##ki, 43); \
     E##ba = XOR128(Bba, ANDnu128(Bbe, Bbi)); \
-    XOReq128(E##ba, CONST128_64(KeccakF1600RoundConstants[i])); \
+    XOReq128(E##ba, CONST128_RC(i)); \
     Ca = E##ba; \
     XOReq128(A##mo, Do); \
     Bbo = ROL64in128(A##mo, 21); \
@@ -299,7 +340,18 @@ static const uint64_t KeccakF1600RoundConstants[24] = {
     thetaRhoPiChiIotaPrepareTheta(23, E, A)
 
 #define rounds24 \
-    rounds12 \
+    thetaRhoPiChiIotaPrepareTheta( 0, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 1, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 2, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 3, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 4, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 5, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 6, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 7, E, A) \
+    thetaRhoPiChiIotaPrepareTheta( 8, A, E) \
+    thetaRhoPiChiIotaPrepareTheta( 9, E, A) \
+    thetaRhoPiChiIotaPrepareTheta(10, A, E) \
+    thetaRhoPiChiIotaPrepareTheta(11, E, A) \
     thetaRhoPiChiIotaPrepareTheta(12, A, E) \
     thetaRhoPiChiIotaPrepareTheta(13, E, A) \
     thetaRhoPiChiIotaPrepareTheta(14, A, E) \
@@ -312,6 +364,14 @@ static const uint64_t KeccakF1600RoundConstants[24] = {
     thetaRhoPiChiIotaPrepareTheta(21, E, A) \
     thetaRhoPiChiIotaPrepareTheta(22, A, E) \
     thetaRhoPiChiIotaPrepareTheta(23, E, A)
+
+/* ---------------------------------------------------------------- */
+/* 
+ * OPTIMIZED XOR_In macro using direct SIMD loads.
+ * This is the key optimization - avoiding GPR-to-SIMD transfers.
+ */
+#define XOR_In_Fast(Xxx, curData0, curData1, argIndex) \
+    XOReq128(Xxx, LOAD6464(&curData1[argIndex], &curData0[argIndex]))
 
 /* ---------------------------------------------------------------- */
 /* FastLoop_Absorb - 24 rounds */
@@ -334,13 +394,27 @@ size_t KeccakF1600times2_FastLoop_Absorb(
 
         copyFromState(A, statesAsLanes)
         while (dataByteLen >= (laneOffsetParallel + laneCount) * SnP_laneLengthInBytes) {
-            #define XOR_In(Xxx, argIndex) XOReq128(Xxx, LOAD6464(curData1[argIndex], curData0[argIndex]))
-            XOR_In(Aba,  0); XOR_In(Abe,  1); XOR_In(Abi,  2); XOR_In(Abo,  3); XOR_In(Abu,  4);
-            XOR_In(Aga,  5); XOR_In(Age,  6); XOR_In(Agi,  7); XOR_In(Ago,  8); XOR_In(Agu,  9);
-            XOR_In(Aka, 10); XOR_In(Ake, 11); XOR_In(Aki, 12); XOR_In(Ako, 13); XOR_In(Aku, 14);
-            XOR_In(Ama, 15); XOR_In(Ame, 16); XOR_In(Ami, 17); XOR_In(Amo, 18); XOR_In(Amu, 19);
-            XOR_In(Asa, 20);
-            #undef XOR_In
+            XOR_In_Fast(Aba, curData0, curData1,  0);
+            XOR_In_Fast(Abe, curData0, curData1,  1);
+            XOR_In_Fast(Abi, curData0, curData1,  2);
+            XOR_In_Fast(Abo, curData0, curData1,  3);
+            XOR_In_Fast(Abu, curData0, curData1,  4);
+            XOR_In_Fast(Aga, curData0, curData1,  5);
+            XOR_In_Fast(Age, curData0, curData1,  6);
+            XOR_In_Fast(Agi, curData0, curData1,  7);
+            XOR_In_Fast(Ago, curData0, curData1,  8);
+            XOR_In_Fast(Agu, curData0, curData1,  9);
+            XOR_In_Fast(Aka, curData0, curData1, 10);
+            XOR_In_Fast(Ake, curData0, curData1, 11);
+            XOR_In_Fast(Aki, curData0, curData1, 12);
+            XOR_In_Fast(Ako, curData0, curData1, 13);
+            XOR_In_Fast(Aku, curData0, curData1, 14);
+            XOR_In_Fast(Ama, curData0, curData1, 15);
+            XOR_In_Fast(Ame, curData0, curData1, 16);
+            XOR_In_Fast(Ami, curData0, curData1, 17);
+            XOR_In_Fast(Amo, curData0, curData1, 18);
+            XOR_In_Fast(Amu, curData0, curData1, 19);
+            XOR_In_Fast(Asa, curData0, curData1, 20);
             prepareTheta
             rounds24
             curData0 += laneOffsetSerial;
@@ -360,12 +434,23 @@ size_t KeccakF1600times2_FastLoop_Absorb(
 
         copyFromState(A, statesAsLanes)
         while (dataByteLen >= (laneOffsetParallel + laneCount) * SnP_laneLengthInBytes) {
-            #define XOR_In(Xxx, argIndex) XOReq128(Xxx, LOAD6464(curData1[argIndex], curData0[argIndex]))
-            XOR_In(Aba,  0); XOR_In(Abe,  1); XOR_In(Abi,  2); XOR_In(Abo,  3); XOR_In(Abu,  4);
-            XOR_In(Aga,  5); XOR_In(Age,  6); XOR_In(Agi,  7); XOR_In(Ago,  8); XOR_In(Agu,  9);
-            XOR_In(Aka, 10); XOR_In(Ake, 11); XOR_In(Aki, 12); XOR_In(Ako, 13); XOR_In(Aku, 14);
-            XOR_In(Ama, 15); XOR_In(Ame, 16);
-            #undef XOR_In
+            XOR_In_Fast(Aba, curData0, curData1,  0);
+            XOR_In_Fast(Abe, curData0, curData1,  1);
+            XOR_In_Fast(Abi, curData0, curData1,  2);
+            XOR_In_Fast(Abo, curData0, curData1,  3);
+            XOR_In_Fast(Abu, curData0, curData1,  4);
+            XOR_In_Fast(Aga, curData0, curData1,  5);
+            XOR_In_Fast(Age, curData0, curData1,  6);
+            XOR_In_Fast(Agi, curData0, curData1,  7);
+            XOR_In_Fast(Ago, curData0, curData1,  8);
+            XOR_In_Fast(Agu, curData0, curData1,  9);
+            XOR_In_Fast(Aka, curData0, curData1, 10);
+            XOR_In_Fast(Ake, curData0, curData1, 11);
+            XOR_In_Fast(Aki, curData0, curData1, 12);
+            XOR_In_Fast(Ako, curData0, curData1, 13);
+            XOR_In_Fast(Aku, curData0, curData1, 14);
+            XOR_In_Fast(Ama, curData0, curData1, 15);
+            XOR_In_Fast(Ame, curData0, curData1, 16);
             prepareTheta
             rounds24
             curData0 += laneOffsetSerial;
@@ -410,13 +495,27 @@ size_t KeccakP1600times2_12rounds_FastLoop_Absorb(
 
         copyFromState(A, statesAsLanes)
         while (dataByteLen >= (laneOffsetParallel + laneCount) * SnP_laneLengthInBytes) {
-            #define XOR_In(Xxx, argIndex) XOReq128(Xxx, LOAD6464(curData1[argIndex], curData0[argIndex]))
-            XOR_In(Aba,  0); XOR_In(Abe,  1); XOR_In(Abi,  2); XOR_In(Abo,  3); XOR_In(Abu,  4);
-            XOR_In(Aga,  5); XOR_In(Age,  6); XOR_In(Agi,  7); XOR_In(Ago,  8); XOR_In(Agu,  9);
-            XOR_In(Aka, 10); XOR_In(Ake, 11); XOR_In(Aki, 12); XOR_In(Ako, 13); XOR_In(Aku, 14);
-            XOR_In(Ama, 15); XOR_In(Ame, 16); XOR_In(Ami, 17); XOR_In(Amo, 18); XOR_In(Amu, 19);
-            XOR_In(Asa, 20);
-            #undef XOR_In
+            XOR_In_Fast(Aba, curData0, curData1,  0);
+            XOR_In_Fast(Abe, curData0, curData1,  1);
+            XOR_In_Fast(Abi, curData0, curData1,  2);
+            XOR_In_Fast(Abo, curData0, curData1,  3);
+            XOR_In_Fast(Abu, curData0, curData1,  4);
+            XOR_In_Fast(Aga, curData0, curData1,  5);
+            XOR_In_Fast(Age, curData0, curData1,  6);
+            XOR_In_Fast(Agi, curData0, curData1,  7);
+            XOR_In_Fast(Ago, curData0, curData1,  8);
+            XOR_In_Fast(Agu, curData0, curData1,  9);
+            XOR_In_Fast(Aka, curData0, curData1, 10);
+            XOR_In_Fast(Ake, curData0, curData1, 11);
+            XOR_In_Fast(Aki, curData0, curData1, 12);
+            XOR_In_Fast(Ako, curData0, curData1, 13);
+            XOR_In_Fast(Aku, curData0, curData1, 14);
+            XOR_In_Fast(Ama, curData0, curData1, 15);
+            XOR_In_Fast(Ame, curData0, curData1, 16);
+            XOR_In_Fast(Ami, curData0, curData1, 17);
+            XOR_In_Fast(Amo, curData0, curData1, 18);
+            XOR_In_Fast(Amu, curData0, curData1, 19);
+            XOR_In_Fast(Asa, curData0, curData1, 20);
             prepareTheta
             rounds12
             curData0 += laneOffsetSerial;
@@ -436,12 +535,23 @@ size_t KeccakP1600times2_12rounds_FastLoop_Absorb(
 
         copyFromState(A, statesAsLanes)
         while (dataByteLen >= (laneOffsetParallel + laneCount) * SnP_laneLengthInBytes) {
-            #define XOR_In(Xxx, argIndex) XOReq128(Xxx, LOAD6464(curData1[argIndex], curData0[argIndex]))
-            XOR_In(Aba,  0); XOR_In(Abe,  1); XOR_In(Abi,  2); XOR_In(Abo,  3); XOR_In(Abu,  4);
-            XOR_In(Aga,  5); XOR_In(Age,  6); XOR_In(Agi,  7); XOR_In(Ago,  8); XOR_In(Agu,  9);
-            XOR_In(Aka, 10); XOR_In(Ake, 11); XOR_In(Aki, 12); XOR_In(Ako, 13); XOR_In(Aku, 14);
-            XOR_In(Ama, 15); XOR_In(Ame, 16);
-            #undef XOR_In
+            XOR_In_Fast(Aba, curData0, curData1,  0);
+            XOR_In_Fast(Abe, curData0, curData1,  1);
+            XOR_In_Fast(Abi, curData0, curData1,  2);
+            XOR_In_Fast(Abo, curData0, curData1,  3);
+            XOR_In_Fast(Abu, curData0, curData1,  4);
+            XOR_In_Fast(Aga, curData0, curData1,  5);
+            XOR_In_Fast(Age, curData0, curData1,  6);
+            XOR_In_Fast(Agi, curData0, curData1,  7);
+            XOR_In_Fast(Ago, curData0, curData1,  8);
+            XOR_In_Fast(Agu, curData0, curData1,  9);
+            XOR_In_Fast(Aka, curData0, curData1, 10);
+            XOR_In_Fast(Ake, curData0, curData1, 11);
+            XOR_In_Fast(Aki, curData0, curData1, 12);
+            XOR_In_Fast(Ako, curData0, curData1, 13);
+            XOR_In_Fast(Aku, curData0, curData1, 14);
+            XOR_In_Fast(Ama, curData0, curData1, 15);
+            XOR_In_Fast(Ame, curData0, curData1, 16);
             prepareTheta
             rounds12
             curData0 += laneOffsetSerial;
