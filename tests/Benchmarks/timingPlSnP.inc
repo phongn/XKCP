@@ -185,11 +185,11 @@ void doTimingPlSnP(const char *module, const char *implementation)
 
     if (PlSnP_GetFeatures() & PlSnP_Feature_SpongeAbsorb) {
         gatherPlSnP_FastLoop_Absorb_interleaved(calibration, measurements, laneCounts);
-        printf("Time for PlSnP_FastLoop_Absorb(state, 16, 17 and 21 lanes) interleaved: \n");
+        printf("Time for " xstr(PlSnP_FastLoop_Absorb) "(state, 16, 17 and 21 lanes) interleaved: \n");
         displayMeasurements1101001000(measurements, laneCounts, 3, SnP_laneLengthInBytes*PlSnP_P);
 
         gatherPlSnP_FastLoop_Absorb_segmented(calibration, measurements, laneCounts);
-        printf("Time for PlSnP_FastLoop_Absorb(state, 16, 17 and 21 lanes) segmented: \n");
+        printf("Time for " xstr(PlSnP_FastLoop_Absorb) "(state, 16, 17 and 21 lanes) segmented: \n");
         displayMeasurements1101001000(measurements, laneCounts, 3, SnP_laneLengthInBytes*PlSnP_P);
     }
 
