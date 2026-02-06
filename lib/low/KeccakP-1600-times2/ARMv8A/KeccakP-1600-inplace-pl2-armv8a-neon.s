@@ -336,31 +336,32 @@
 
 .macro    KeccakP_ThetaRhoPiChiIota ofs1, ofs2, ofs3, ofs4, ofs5, next, ofsn1
 
+    // OPTIMIZED: Use v16-v19 for De,Di,Do,Du to avoid temp stack storage
     // De = Ca ^ ROL64(Ci, 1)
     // Di = Ce ^ ROL64(Co, 1)
     // Do = Ci ^ ROL64(Cu, 1)
     // Du = Co ^ ROL64(Ca, 1)
     // Da = Cu ^ ROL64(Ce, 1)
-    add     v6.2d, v2.2d, v2.2d
-    add     v7.2d, v3.2d, v3.2d
-    add     v8.2d, v4.2d, v4.2d
-    add     v9.2d, v0.2d, v0.2d
-    add     v5.2d, v1.2d, v1.2d
+    add     v16.2d, v2.2d, v2.2d        // v16 will be De
+    add     v17.2d, v3.2d, v3.2d        // v17 will be Di
+    add     v18.2d, v4.2d, v4.2d        // v18 will be Do
+    add     v19.2d, v0.2d, v0.2d        // v19 will be Du
+    add     v5.2d, v1.2d, v1.2d         // v5 = Da
 
-    sri     v6.2d, v2.2d, #63
-    sri     v7.2d, v3.2d, #63
-    sri     v8.2d, v4.2d, #63
-    sri     v9.2d, v0.2d, #63
+    sri     v16.2d, v2.2d, #63
+    sri     v17.2d, v3.2d, #63
+    sri     v18.2d, v4.2d, #63
+    sri     v19.2d, v0.2d, #63
     sri     v5.2d, v1.2d, #63
 
-    eor     v6.16b, v6.16b, v0.16b
-    eor     v7.16b, v7.16b, v1.16b
-    eor     v8.16b, v8.16b, v2.16b
+    eor     v16.16b, v16.16b, v0.16b    // De = Ca ^ ROL64(Ci, 1)
+    eor     v17.16b, v17.16b, v1.16b    // Di = Ce ^ ROL64(Co, 1)
+    eor     v18.16b, v18.16b, v2.16b    // Do = Ci ^ ROL64(Cu, 1)
     .if  \next != 16
     mov     x4, #\next
     .endif
-    eor     v9.16b, v9.16b, v3.16b
-    eor     v5.16b, v5.16b, v4.16b
+    eor     v19.16b, v19.16b, v3.16b    // Du = Co ^ ROL64(Ca, 1)
+    eor     v5.16b, v5.16b, v4.16b      // Da = Cu ^ ROL64(Ce, 1)
 
     // Ba = argA1^Da
     // Be = ROL64(argA2^De, 44)
@@ -369,44 +370,40 @@
     // Bu = ROL64(argA5^Du, 14)
     m_ld    v10.2d, \next
     m_pls   \ofs2
-    m_ld    v1.2d, \next
+    m_ld    v6.2d, \next
     m_pls   \ofs3
-    eor     v10.16b, v10.16b, v5.16b
-    m_ld    v2.2d, \next
+    eor     v10.16b, v10.16b, v5.16b    // Ba = state ^ Da
+    m_ld    v7.2d, \next
     m_pls   \ofs4
-    eor     v1.16b, v1.16b, v6.16b
-    m_ld    v3.2d, \next
+    eor     v6.16b, v6.16b, v16.16b     // temp = state ^ De
+    m_ld    v8.2d, \next
     m_pls   \ofs5
-    eor     v2.16b, v2.16b, v7.16b
-    m_ld    v4.2d, \next
-    eor     v3.16b, v3.16b, v8.16b
-    mov     x6, x5
-    eor     v4.16b, v4.16b, v9.16b
+    eor     v7.16b, v7.16b, v17.16b     // temp = state ^ Di
+    m_ld    v9.2d, \next
+    eor     v8.16b, v8.16b, v18.16b     // temp = state ^ Do
+    eor     v9.16b, v9.16b, v19.16b     // temp = state ^ Du
 
-    st1     { v6.2d }, [x6], #16
-    shl     v11.2d, v1.2d, #44
-    shl     v12.2d, v2.2d, #43
-    st1     { v7.2d }, [x6], #16
-    shl     v13.2d, v3.2d, #21
-    shl     v14.2d, v4.2d, #14
-    st1     { v8.2d }, [x6], #16
-    sri     v11.2d, v1.2d, #64-44
-    sri     v12.2d, v2.2d, #64-43
-    st1     { v9.2d }, [x6], #16
-    sri     v13.2d, v3.2d, #64-21
-    sri     v14.2d, v4.2d, #64-14
+    // No temp stack storage needed - D values stay in v16-v19!
+    shl     v11.2d, v6.2d, #44
+    shl     v12.2d, v7.2d, #43
+    shl     v13.2d, v8.2d, #21
+    shl     v14.2d, v9.2d, #14
+    sri     v11.2d, v6.2d, #64-44       // Be = ROL64(temp, 44)
+    sri     v12.2d, v7.2d, #64-43       // Bi = ROL64(temp, 43)
+    sri     v13.2d, v8.2d, #64-21       // Bo = ROL64(temp, 21)
+    sri     v14.2d, v9.2d, #64-14       // Bu = ROL64(temp, 14)
 
     // argA1 = Ba ^(~Be & Bi) ^ KeccakP1600RoundConstants[round]
     // argA2 = Be ^(~Bi & Bo)
     // argA3 = Bi ^(~Bo & Bu)
     // argA4 = Bo ^(~Bu & Ba)
     // argA5 = Bu ^(~Ba & Be)
-    ld1     { v30.d }[0], [x1]
+    // OPTIMIZED: Use ld1r to load and replicate constant to both lanes
+    ld1r    { v30.2d }, [x1], #8
     bic     v0.16b, v12.16b, v11.16b
     bic     v1.16b, v13.16b, v12.16b
-    ld1     { v30.d }[1], [x1], #8
-    eor     v0.16b, v0.16b, v10.16b
     bic     v4.16b, v11.16b, v10.16b
+    eor     v0.16b, v0.16b, v10.16b
     eor     v0.16b, v0.16b, v30.16b
     bic     v2.16b, v14.16b, v13.16b
     bic     v3.16b, v10.16b, v14.16b
@@ -430,6 +427,7 @@
 
 .macro    KeccakP_ThetaRhoPiChi  ofs1, ofs2, ofs3, ofs4, ofs5, next, ofsn1, Bb1, Bb2, Bb3, Bb4, Bb5, Rr1, Rr2, Rr3, Rr4, Rr5
 
+    // OPTIMIZED: D values now in v5 (Da), v16 (De), v17 (Di), v18 (Do), v19 (Du)
     // Bb1 = ROL64((argA1^Da), Rr1)
     // Bb2 = ROL64((argA2^De), Rr2)
     // Bb3 = ROL64((argA3^Di), Rr3)
@@ -444,16 +442,16 @@
     m_pls   \ofs2
     m_ld    \Bb2\().2d,   \next
     m_pls   \ofs3
-    eor     v15.16b, v5.16b, \Bb1\().16b
+    eor     v15.16b, v5.16b, \Bb1\().16b       // temp = state ^ Da
     m_ld    \Bb3\().2d,   \next
     m_pls   \ofs4
-    eor     v6.16b, v6.16b, \Bb2\().16b
+    eor     v6.16b, v16.16b, \Bb2\().16b       // temp = state ^ De (using v16!)
     m_ld    \Bb4\().2d,   \next
     m_pls   \ofs5
-    eor     v7.16b, v7.16b, \Bb3\().16b
+    eor     v7.16b, v17.16b, \Bb3\().16b       // temp = state ^ Di (using v17!)
     m_ld    \Bb5\().2d,   \next
-    eor     v8.16b, v8.16b, \Bb4\().16b
-    eor     v9.16b, v9.16b, \Bb5\().16b
+    eor     v8.16b, v18.16b, \Bb4\().16b       // temp = state ^ Do (using v18!)
+    eor     v9.16b, v19.16b, \Bb5\().16b       // temp = state ^ Du (using v19!)
 
     shl     \Bb1\().2d, v15.2d, #\Rr1
     shl     \Bb2\().2d, v6.2d, #\Rr2
@@ -473,7 +471,6 @@
     // argA4 = Bo ^((~Bu)&  Ba ), Co ^= argA4
     // argA5 = Bu ^((~Ba)&  Be ), Cu ^= argA5
     bic     v15.16b, v12.16b, v11.16b
-    mov     x6, x5
     bic     v6.16b, v13.16b, v12.16b
     m_pls   \ofs1
     bic     v7.16b, v14.16b, v13.16b
@@ -490,13 +487,11 @@
     m_st    v6.2d, \next
     m_pls   \ofs3
     eor     v1.16b, v1.16b, v6.16b
-    ld1     { v6.2d }, [x6], #16
     eor     v8.16b, v8.16b, v13.16b
 
     m_st    v7.2d, \next
     m_pls   \ofs4
     eor     v2.16b, v2.16b, v7.16b
-    ld1     { v7.2d }, [x6], #16
     eor     v9.16b, v9.16b, v14.16b
 
     m_st    v8.2d, \next
@@ -505,10 +500,9 @@
 
     m_st    v9.2d, \next
 
-    ld1     { v8.2d }, [x6], #16
+    // No temp stack loads needed - D values stay in v16-v19!
     eor     v4.16b, v4.16b, v9.16b
     m_pls   \ofsn1
-    ld1     { v9.2d }, [x6], #16
     eor     v0.16b, v0.16b, v15.16b
     .endm
 
@@ -526,6 +520,7 @@
 
 .macro    KeccakP_ThetaRhoPiChi4 ofs1, ofs2, ofs3, ofs4, ofs5, next, ofsn1
 
+    // OPTIMIZED: D values now in v5 (Da), v16 (De), v17 (Di), v18 (Do), v19 (Du)
     // Bo = ROL64((argA1^Da), 41)
     // Bu = ROL64((argA2^De), 2)
     // Ba = ROL64((argA3^Di), 62)
@@ -541,28 +536,28 @@
     m_pls   \ofs2
     m_ld    v14.2d, \next
     m_pls   \ofs3
-    eor     v5.16b, v5.16b, v13.16b
+    eor     v20.16b, v5.16b, v13.16b           // temp = state ^ Da (use v20 as scratch)
     m_ld    v10.2d, \next
     m_pls   \ofs4
-    eor     v6.16b, v6.16b, v14.16b
+    eor     v21.16b, v16.16b, v14.16b          // temp = state ^ De (using v16!)
     m_ld    v11.2d, \next
     m_pls   \ofs5
-    eor     v7.16b, v7.16b, v10.16b
+    eor     v22.16b, v17.16b, v10.16b          // temp = state ^ Di (using v17!)
     m_ld    v12.2d, \next
-    eor     v8.16b, v8.16b, v11.16b
-    eor     v9.16b, v9.16b, v12.16b
+    eor     v23.16b, v18.16b, v11.16b          // temp = state ^ Do (using v18!)
+    eor     v24.16b, v19.16b, v12.16b          // temp = state ^ Du (using v19!)
 
-    shl     v13.2d, v5.2d, #41
-    shl     v14.2d, v6.2d, #2
-    shl     v10.2d, v7.2d, #62
-    shl     v11.2d, v8.2d, #55
-    shl     v12.2d, v9.2d, #39
+    shl     v13.2d, v20.2d, #41                // Bo
+    shl     v14.2d, v21.2d, #2                 // Bu
+    shl     v10.2d, v22.2d, #62                // Ba
+    shl     v11.2d, v23.2d, #55                // Be
+    shl     v12.2d, v24.2d, #39                // Bi
 
-    sri     v13.2d, v5.2d, #64-41
-    sri     v14.2d, v6.2d, #64-2
-    sri     v11.2d, v8.2d, #64-55
-    sri     v12.2d, v9.2d, #64-39
-    sri     v10.2d, v7.2d, #64-62
+    sri     v13.2d, v20.2d, #64-41
+    sri     v14.2d, v21.2d, #64-2
+    sri     v11.2d, v23.2d, #64-55
+    sri     v12.2d, v24.2d, #64-39
+    sri     v10.2d, v22.2d, #64-62
 
     bic     v5.16b, v12.16b, v11.16b
     bic     v6.16b, v13.16b, v12.16b
@@ -1158,16 +1153,14 @@ KeccakP1600times2_PermuteAll_4rounds:
 //
 .align 8
 KeccakP1600times2_PermuteAll:
-    stp     x19, x20, [sp, #-16]!
-    stp     x21, x22, [sp, #-16]!
+    // OPTIMIZED: Using v16-v19 for D values eliminates temp stack storage
     // Save callee-saved NEON registers v8-v15 (AArch64 ABI requirement)
+    // NOTE: v16-v19 are caller-saved, no need to save them
     stp     d8, d9, [sp, #-16]!
     stp     d10, d11, [sp, #-16]!
     stp     d12, d13, [sp, #-16]!
     stp     d14, d15, [sp, #-16]!
-    sub     sp, sp, #(4*16+16)          // allocate 4 Q regs temp space + alignment
     mov     x3, x0
-    add     x5, sp, #16                 // x5 points to temp space (aligned)
 
     //PrepareTheta
     // Ca = ba ^ ga ^ ka ^ ma ^ sa
@@ -1245,14 +1238,12 @@ KeccakP1600times2_PermuteAll_Round2:
     subs    w2, w2, #4
     KeccakP_ThetaRhoPiChi4     _sa,  -1,  -1,  -1,  -1, _se-_sa, _ba // _sa, _se, _si, _so, _su
     bne     KeccakP1600times2_PermuteAll_RoundLoop
-    add     sp, sp, #(4*16+16)          // free temp space
+    // OPTIMIZED: No temp space to free - D values kept in v16-v19
     // Restore callee-saved NEON registers v8-v15
     ldp     d14, d15, [sp], #16
     ldp     d12, d13, [sp], #16
     ldp     d10, d11, [sp], #16
     ldp     d8, d9, [sp], #16
-    ldp     x21, x22, [sp], #16
-    ldp     x19, x20, [sp], #16
     ret
 
 
@@ -1260,15 +1251,13 @@ KeccakP1600times2_PermuteAll_Round2:
 // Special entry for 6 rounds with state reshuffling (for KangarooTwelve)
 //
 KeccakP1600times2_PermuteAll_6rounds_body:
-    stp     x19, x20, [sp, #-16]!
-    stp     x21, x22, [sp, #-16]!
+    // OPTIMIZED: Using v16-v19 for D values eliminates temp stack storage
     // Save callee-saved NEON registers v8-v15 (AArch64 ABI requirement)
+    // NOTE: v16-v19 are caller-saved, no need to save them
     stp     d8, d9, [sp, #-16]!
     stp     d10, d11, [sp, #-16]!
     stp     d12, d13, [sp, #-16]!
     stp     d14, d15, [sp, #-16]!
-    sub     sp, sp, #(4*16+16)
-    add     x5, sp, #16
 
     // State reshuffling and PrepareTheta for 6-round special case
     // Following ARMv7A structure: x0=state base, x3=temp ptr, x4=write ptr
