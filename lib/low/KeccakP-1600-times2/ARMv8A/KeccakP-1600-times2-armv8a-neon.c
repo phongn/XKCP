@@ -71,17 +71,29 @@ static inline void STORE64H(uint64_t *a, V128 b) {
 #define ROL64in128(a, o)    vorrq_u64(vshlq_n_u64(a, o), vshrq_n_u64(a, 64-(o)))
 
 /* 
- * Optimized rotations using byte extract (vext).
- * These are single-cycle operations on most ARM cores.
+ * Per-lane 64-bit rotations by byte-aligned amounts using TBL (table lookup).
+ * This is the correct NEON equivalent of SSSE3's _mm_shuffle_epi8.
+ *
+ * NOTE: vextq_u8 CANNOT be used here because it rotates the entire 128-bit
+ * vector as a single unit, which mixes bytes across the two independent
+ * 64-bit lanes in our parallel x2 state. TBL performs per-byte indexing
+ * within the full 128-bit source, allowing independent per-lane operations.
  */
+static const uint8_t ROL64in128_8_indices[16] __attribute__((aligned(16))) =
+    {7,0,1,2,3,4,5,6, 15,8,9,10,11,12,13,14};
+static const uint8_t ROL64in128_56_indices[16] __attribute__((aligned(16))) =
+    {1,2,3,4,5,6,7,0, 9,10,11,12,13,14,15,8};
+
 static inline __attribute__((always_inline)) V128 ROL64in128_8(V128 a) {
-    /* Rotate left by 8 bits = rotate bytes by 1 position (extract at 15) */
-    return vreinterpretq_u64_u8(vextq_u8(vreinterpretq_u8_u64(a), vreinterpretq_u8_u64(a), 15));
+    /* Rotate left by 8 bits independently in each 64-bit lane */
+    return vreinterpretq_u64_u8(vqtbl1q_u8(vreinterpretq_u8_u64(a),
+        vld1q_u8(ROL64in128_8_indices)));
 }
 
 static inline __attribute__((always_inline)) V128 ROL64in128_56(V128 a) {
-    /* Rotate left by 56 bits = rotate bytes by 7 positions (extract at 1) */
-    return vreinterpretq_u64_u8(vextq_u8(vreinterpretq_u8_u64(a), vreinterpretq_u8_u64(a), 1));
+    /* Rotate left by 56 bits independently in each 64-bit lane */
+    return vreinterpretq_u64_u8(vqtbl1q_u8(vreinterpretq_u8_u64(a),
+        vld1q_u8(ROL64in128_56_indices)));
 }
 
 #define SnP_laneLengthInBytes 8
