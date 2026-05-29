@@ -259,6 +259,21 @@ The fragments below allow to select the desired implementation of the permutatio
         <h>lib/low/x86-64-dispatch/KeccakP-1600-times8-SnP.h</h>
     </fragment>
 
+    <!-- AArch64 runtime dispatch: single-state Keccak-p[1600] selects the SHA3
+         backend at runtime (when the CPU supports it) or the generic 64-bit
+         backend. The SHA3 x1 core is compiled +sha3 but only executed after the
+         runtime check, so the binary is safe on non-SHA3 cores. -->
+    <fragment name="K1600-aarch64" inherits="K1600-plain-64bits-pure">
+        <config>XKCP_has_aarch64_CPU_detection</config>
+        <gcc>-march=armv8.2-a</gcc>
+        <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-x1-v84a-asm.s</s>
+        <c gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-x1-v84a.c</c>
+        <h>lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-v84a.h</h>
+        <c>lib/low/aarch64-dispatch/aarch64-dispatch.c</c>
+        <h>lib/low/aarch64-dispatch/aarch64-dispatch.h</h>
+        <h>lib/low/aarch64-dispatch/KeccakP-1600-SnP.h</h>
+    </fragment>
+
     <fragment name="K1600-ARMv6M" inherits="K1600 optimized">
         <h>lib/low/KeccakP-1600/ARM/KeccakP-1600-SnP.h</h>
     </fragment>

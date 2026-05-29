@@ -194,13 +194,17 @@ http://creativecommons.org/publicdomain/zero/1.0/
     <!-- ARMv8.4-A SHA3 with the x4 scalar/NEON/SHA3 hybrid as well (validation/dispatch source) -->
     <fragment name="ARMv8ASHA3x4" inherits="K1600-ARMv8A-SHA3 K1600x2-ARMv8A-SHA3 K1600x4-ARMv8A-SHA3 Xoodoo-plain-ua"/>
 
+    <!-- Portable AArch64: runtime-dispatched x1 (SHA3 when available), pure-NEON x2,
+         scalar+NEON hybrid x4 (both SHA3-free, safe on any ARMv8 core). -->
+    <fragment name="aarch64" inherits="K1600-aarch64 K1600x2-ARMv8A K1600x4-ARMv8A Xoodoo-plain-ua"/>
+
     <!-- Implementations selected for 8-bit AVR -->
     <fragment name="AVR8" inherits="K1600-AVR8 Xoodoo-AVR8"/>
 
     <!-- Target names are of the form x/y where x is taken from the first set and y from the second set. -->
     <group all="XKCP">
         <product delimiter="/">
-            <factor set="reference reference32bits compact generic32 generic32lc generic64 generic64lc SSSE3 AVX XOP AVX2 AVX2noAsm AVX512 AVX512noAsm x86-64 ARMv6 ARMv6M ARMv7M ARMv7A ARMv8A ARMv8ASHA3 ARMv8Ahybrid ARMv8ASHA3x4 AVR8"/>
+            <factor set="reference reference32bits compact generic32 generic32lc generic64 generic64lc SSSE3 AVX XOP AVX2 AVX2noAsm AVX512 AVX512noAsm x86-64 ARMv6 ARMv6M ARMv7M ARMv7A ARMv8A ARMv8ASHA3 ARMv8Ahybrid ARMv8ASHA3x4 aarch64 AVR8"/>
             <factor set="UnitTests Benchmarks KeccakSum libXKCP.a libXKCP.so libXKCP.dylib"/>
         </product>
     </group>

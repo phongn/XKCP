@@ -34,6 +34,12 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #ifdef XKCP_has_x86_64_CPU_detection
 #include "x86-64-dispatch.h"
 #endif
+#ifdef XKCP_has_aarch64_CPU_detection
+#include "aarch64-dispatch.h"
+#endif
+#if defined(XKCP_has_x86_64_CPU_detection) || defined(XKCP_has_aarch64_CPU_detection)
+#define XKCP_has_CPU_detection
+#endif
 
 #ifdef KeccakReference
 #include "displayIntermediateValues.h"
@@ -440,7 +446,7 @@ int process(int argc, char* argv[])
     for(i=1; i<argc; i++) {
         if ((strcmp("--help", argv[i]) == 0) || (strcmp("-h", argv[i]) == 0))
             help = 1;
-#ifdef XKCP_has_x86_64_CPU_detection
+#ifdef XKCP_has_CPU_detection
         else if (XKCP_ProcessCpuFeatureCommandLineOption(argv[i])) {}
 #endif
         else if ((strcmp("--all", argv[i]) == 0) || (strcmp("-a", argv[i]) == 0))
@@ -574,7 +580,7 @@ int process(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-#ifdef XKCP_has_x86_64_CPU_detection
+#ifdef XKCP_has_CPU_detection
     XKCP_EnableAllCpuFeatures();
 #endif
     return process(argc, argv);
