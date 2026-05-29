@@ -287,8 +287,9 @@ The fragments below allow to select the desired implementation of the permutatio
          Permutation core from mlkem-native (Becker-Kannwischer); byte/lane ops shared
          with the generic 64-bit backend. -->
     <fragment name="K1600-ARMv8A-SHA3" inherits="K1600-plain-64bits-pure">
+        <gcc>-march=armv8.2-a+sha3</gcc>
         <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-x1-v84a-asm.s</s>
-        <c gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-x1-v84a.c</c>
+        <c>lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-x1-v84a.c</c>
         <h>lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-v84a.h</h>
         <h>lib/low/KeccakP-1600/ARMv8A-SHA3/SnP/KeccakP-1600-SnP.h</h>
     </fragment>
@@ -379,9 +380,12 @@ The fragments below allow to select the desired implementation of the permutatio
     </fragment>
 
     <fragment name="K1600x2-ARMv8A" inherits="K1600x2">
-        <!-- <gcc>-march=armv8.2-a+crypto+dotprod+rcpc+fp16</gcc> -->
+        <!-- Global -march drives the C/high-level sources; the per-file -march also
+             reaches the assembler. armv8.2-a (no +sha3) leaves __ARM_FEATURE_SHA3
+             undefined so the pure-NEON paths are used (the +sha3 variant is
+             K1600x2-ARMv8A-SHA3 below). -->
         <gcc>-march=armv8.2-a</gcc>
-        <s>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-inplace-pl2-armv8a-neon.s</s>
+        <s gcc="-march=armv8.2-a">lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-inplace-pl2-armv8a-neon.s</s>
         <c>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-armv8a-neon.c</c>
         <h>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-SnP.h</h>
     </fragment>
@@ -390,9 +394,10 @@ The fragments below allow to select the desired implementation of the permutatio
          SHA3-instruction core (mlkem-native). Built with +sha3 so __ARM_FEATURE_SHA3
          selects the SHA3 paths in the shared .s/.c sources. -->
     <fragment name="K1600x2-ARMv8A-SHA3" inherits="K1600x2">
+        <gcc>-march=armv8.2-a+sha3</gcc>
         <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-inplace-pl2-armv8a-neon.s</s>
         <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-x2-v84a-asm.s</s>
-        <c gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-armv8a-neon.c</c>
+        <c>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-armv8a-neon.c</c>
         <h>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-SnP.h</h>
     </fragment>
 
@@ -401,6 +406,24 @@ The fragments below allow to select the desired implementation of the permutatio
     <fragment name="K1600x4">
         <config>XKCP_has_KeccakP1600times4</config>
         <h>lib/common/PlSnP-common.h</h>
+    </fragment>
+
+    <!-- Keccak-p[1600]x4 scalar+NEON hybrid (mlkem-native core, Becker-Kannwischer).
+         The v8a variant needs no SHA3 extension (target: Cortex-A class cores);
+         the v84a variant additionally uses the SHA3 instructions. Byte/lane ops
+         fall back serially on the x1 SnP backend (PlSnP-Fallback.inc). -->
+    <fragment name="K1600x4-ARMv8A" inherits="optimized K1600x4">
+        <gcc>-march=armv8.2-a</gcc>
+        <s gcc="-march=armv8.2-a">lib/low/KeccakP-1600-times4/ARMv8A/KeccakP-1600-times4-x4-v8a-asm.s</s>
+        <c>lib/low/KeccakP-1600-times4/ARMv8A/KeccakP-1600-times4-armv8a.c</c>
+        <h>lib/low/KeccakP-1600-times4/ARMv8A/KeccakP-1600-times4-SnP.h</h>
+    </fragment>
+
+    <fragment name="K1600x4-ARMv8A-SHA3" inherits="optimized K1600x4">
+        <gcc>-march=armv8.2-a+sha3</gcc>
+        <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600-times4/ARMv8A/KeccakP-1600-times4-x4-v84a-asm.s</s>
+        <c>lib/low/KeccakP-1600-times4/ARMv8A/KeccakP-1600-times4-armv8a.c</c>
+        <h>lib/low/KeccakP-1600-times4/ARMv8A/KeccakP-1600-times4-SnP.h</h>
     </fragment>
 
     <fragment name="K1600x4-AVX2-pure" inherits="optimized K1600x4 x86-64-SIMD-types">
