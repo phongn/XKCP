@@ -385,6 +385,144 @@ static const uint64_t KeccakF1600RoundConstants_vec[24][2] __attribute__((aligne
 #define XOR_In_Fast(Xxx, curData0, curData1, argIndex) \
     XOReq128(Xxx, LOAD6464(&curData1[argIndex], &curData0[argIndex]))
 
+#if defined(__ARM_FEATURE_SHA3)
+/* ---------------------------------------------------------------- */
+/*
+ * One Keccak-p[1600]x2 round using the ARMv8.4-A SHA3 instructions, expressed
+ * with NEON intrinsics. This is a faithful, statement-for-statement transcription
+ * of the verified mlkem-native x2 round loop (keccak_f1600_x2_v84a_aarch64_asm.S,
+ * Becker-Kannwischer): s[] holds the 25 interleaved state lanes (s[i] = lane i of
+ * both instances), t25..t31 are the kernel's scratch registers, and the exact
+ * instruction order is preserved so the in-place register reuse stays correct.
+ * Intrinsic semantics: veor3q(a,b,c)=a^b^c; vrax1q(a,b)=a^ROL(b,1);
+ * vxarq(a,b,n)=ROR(a^b,n); vbcaxq(a,b,c)=a^(b&~c).
+ *
+ * Used by the absorb fast-loop so the whole sponge step stays register-resident
+ * (no per-block state load/store), recovering the throughput the standalone
+ * permute achieves.
+ */
+#define KeccakP1600times2_SHA3_Round(s, rcvec)                       \
+do {                                                                 \
+    V128 t25, t26, t27, t28, t29, t30, t31;                          \
+    t30 = veor3q_u64(s[0], s[5], s[10]);                             \
+    t29 = veor3q_u64(s[1], s[6], s[11]);                             \
+    t28 = veor3q_u64(s[2], s[7], s[12]);                             \
+    t27 = veor3q_u64(s[3], s[8], s[13]);                             \
+    t26 = veor3q_u64(s[4], s[9], s[14]);                             \
+    t30 = veor3q_u64(t30, s[15], s[20]);                             \
+    t29 = veor3q_u64(t29, s[16], s[21]);                             \
+    t28 = veor3q_u64(t28, s[17], s[22]);                             \
+    t27 = veor3q_u64(t27, s[18], s[23]);                             \
+    t26 = veor3q_u64(t26, s[19], s[24]);                             \
+    t25 = vrax1q_u64(t30, t28);                                      \
+    t28 = vrax1q_u64(t28, t26);                                      \
+    t26 = vrax1q_u64(t26, t29);                                      \
+    t29 = vrax1q_u64(t29, t27);                                      \
+    t27 = vrax1q_u64(t27, t30);                                      \
+    t30 = veorq_u64(s[0], t26);                                      \
+    s[0]  = vxarq_u64(s[2],  t29, 2);                                \
+    s[2]  = vxarq_u64(s[12], t29, 21);                               \
+    s[12] = vxarq_u64(s[13], t28, 39);                               \
+    s[13] = vxarq_u64(s[19], t27, 56);                               \
+    s[19] = vxarq_u64(s[23], t28, 8);                                \
+    s[23] = vxarq_u64(s[15], t26, 23);                               \
+    s[15] = vxarq_u64(s[1],  t25, 63);                               \
+    s[1]  = vxarq_u64(s[8],  t28, 9);                                \
+    s[8]  = vxarq_u64(s[16], t25, 19);                               \
+    s[16] = vxarq_u64(s[7],  t29, 58);                               \
+    s[7]  = vxarq_u64(s[10], t26, 61);                               \
+    s[10] = vxarq_u64(s[3],  t28, 36);                               \
+    s[3]  = vxarq_u64(s[18], t28, 43);                               \
+    s[18] = vxarq_u64(s[17], t29, 49);                               \
+    s[17] = vxarq_u64(s[11], t25, 54);                               \
+    s[11] = vxarq_u64(s[9],  t27, 44);                               \
+    s[9]  = vxarq_u64(s[22], t29, 3);                                \
+    s[22] = vxarq_u64(s[14], t27, 25);                               \
+    s[14] = vxarq_u64(s[20], t26, 46);                               \
+    s[20] = vxarq_u64(s[4],  t27, 37);                               \
+    s[4]  = vxarq_u64(s[24], t27, 50);                               \
+    s[24] = vxarq_u64(s[21], t25, 62);                               \
+    s[21] = vxarq_u64(s[5],  t26, 28);                               \
+    t27   = vxarq_u64(s[6],  t25, 20);                               \
+    t31 = (rcvec);                                                   \
+    s[5]  = vbcaxq_u64(s[10], s[7],  s[11]);                         \
+    s[6]  = vbcaxq_u64(s[11], s[8],  s[7]);                          \
+    s[7]  = vbcaxq_u64(s[7],  s[9],  s[8]);                          \
+    s[8]  = vbcaxq_u64(s[8],  s[10], s[9]);                          \
+    s[9]  = vbcaxq_u64(s[9],  s[11], s[10]);                         \
+    s[10] = vbcaxq_u64(s[15], s[12], s[16]);                         \
+    s[11] = vbcaxq_u64(s[16], s[13], s[12]);                         \
+    s[12] = vbcaxq_u64(s[12], s[14], s[13]);                         \
+    s[13] = vbcaxq_u64(s[13], s[15], s[14]);                         \
+    s[14] = vbcaxq_u64(s[14], s[16], s[15]);                         \
+    s[15] = vbcaxq_u64(s[20], s[17], s[21]);                         \
+    s[16] = vbcaxq_u64(s[21], s[18], s[17]);                         \
+    s[17] = vbcaxq_u64(s[17], s[19], s[18]);                         \
+    s[18] = vbcaxq_u64(s[18], s[20], s[19]);                         \
+    s[19] = vbcaxq_u64(s[19], s[21], s[20]);                         \
+    s[20] = vbcaxq_u64(s[0],  s[22], s[1]);                          \
+    s[21] = vbcaxq_u64(s[1],  s[23], s[22]);                         \
+    s[22] = vbcaxq_u64(s[22], s[24], s[23]);                         \
+    s[23] = vbcaxq_u64(s[23], s[0],  s[24]);                         \
+    s[24] = vbcaxq_u64(s[24], s[1],  s[0]);                          \
+    s[0]  = vbcaxq_u64(t30, s[2],  t27);                             \
+    s[1]  = vbcaxq_u64(t27, s[3],  s[2]);                            \
+    s[2]  = vbcaxq_u64(s[2],  s[4],  s[3]);                          \
+    s[3]  = vbcaxq_u64(s[3],  t30,  s[4]);                           \
+    s[4]  = vbcaxq_u64(s[4],  t27,  t30);                            \
+    s[0]  = veorq_u64(s[0], t31);                                    \
+} while (0)
+
+/* 24 SHA3 rounds over a register-resident state s[25]. */
+#define KeccakP1600times2_SHA3_Rounds24(s)             \
+do {                                                   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(0));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(1));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(2));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(3));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(4));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(5));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(6));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(7));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(8));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(9));   \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(10));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(11));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(12));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(13));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(14));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(15));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(16));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(17));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(18));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(19));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(20));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(21));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(22));  \
+    KeccakP1600times2_SHA3_Round(s, CONST128_RC(23));  \
+} while (0)
+
+/* Constant-index load/store so the compiler keeps s[] in NEON registers. */
+#define KeccakP1600times2_LoadState(s, p) \
+do { \
+    s[ 0]=LOAD128((p)[ 0]); s[ 1]=LOAD128((p)[ 1]); s[ 2]=LOAD128((p)[ 2]); s[ 3]=LOAD128((p)[ 3]); s[ 4]=LOAD128((p)[ 4]); \
+    s[ 5]=LOAD128((p)[ 5]); s[ 6]=LOAD128((p)[ 6]); s[ 7]=LOAD128((p)[ 7]); s[ 8]=LOAD128((p)[ 8]); s[ 9]=LOAD128((p)[ 9]); \
+    s[10]=LOAD128((p)[10]); s[11]=LOAD128((p)[11]); s[12]=LOAD128((p)[12]); s[13]=LOAD128((p)[13]); s[14]=LOAD128((p)[14]); \
+    s[15]=LOAD128((p)[15]); s[16]=LOAD128((p)[16]); s[17]=LOAD128((p)[17]); s[18]=LOAD128((p)[18]); s[19]=LOAD128((p)[19]); \
+    s[20]=LOAD128((p)[20]); s[21]=LOAD128((p)[21]); s[22]=LOAD128((p)[22]); s[23]=LOAD128((p)[23]); s[24]=LOAD128((p)[24]); \
+} while (0)
+#define KeccakP1600times2_StoreState(p, s) \
+do { \
+    STORE128((p)[ 0],s[ 0]); STORE128((p)[ 1],s[ 1]); STORE128((p)[ 2],s[ 2]); STORE128((p)[ 3],s[ 3]); STORE128((p)[ 4],s[ 4]); \
+    STORE128((p)[ 5],s[ 5]); STORE128((p)[ 6],s[ 6]); STORE128((p)[ 7],s[ 7]); STORE128((p)[ 8],s[ 8]); STORE128((p)[ 9],s[ 9]); \
+    STORE128((p)[10],s[10]); STORE128((p)[11],s[11]); STORE128((p)[12],s[12]); STORE128((p)[13],s[13]); STORE128((p)[14],s[14]); \
+    STORE128((p)[15],s[15]); STORE128((p)[16],s[16]); STORE128((p)[17],s[17]); STORE128((p)[18],s[18]); STORE128((p)[19],s[19]); \
+    STORE128((p)[20],s[20]); STORE128((p)[21],s[21]); STORE128((p)[22],s[22]); STORE128((p)[23],s[23]); STORE128((p)[24],s[24]); \
+} while (0)
+#define KP1600t2_XorIn(s, c0, c1, j) \
+    s[j] = veorq_u64(s[j], LOAD6464(&(c1)[j], &(c0)[j]))
+#endif /* __ARM_FEATURE_SHA3 */
+
 /* ---------------------------------------------------------------- */
 /* FastLoop_Absorb - 24 rounds */
 
@@ -397,17 +535,66 @@ size_t KeccakF1600times2_FastLoop_Absorb(
     size_t dataByteLen)
 {
 #if defined(__ARM_FEATURE_SHA3)
-    /* SHA3-instruction core: absorb full blocks, then run the verified x2 permute.
-       The per-block AddLanesAll + permute is dominated by the (fast) permutation,
-       so the dedicated intrinsic fast-paths below are not needed here. */
-    const unsigned char *dataStart = data;
-    while (dataByteLen >= (laneOffsetParallel + laneCount) * SnP_laneLengthInBytes) {
-        KeccakP1600times2_AddLanesAll(states, data, laneCount, laneOffsetParallel);
-        KeccakP1600times2_PermuteAll_24rounds(states);
-        data += laneOffsetSerial * SnP_laneLengthInBytes;
-        dataByteLen -= laneOffsetSerial * SnP_laneLengthInBytes;
+    /* SHA3-instruction core. For the common rates (21 lanes = SHAKE128/ParallelHash128,
+       17 lanes = SHA3-256/SHAKE256) the whole sponge step stays register-resident:
+       the state is loaded once, then each block is XORed in and run through 24 SHA3
+       rounds without touching memory, and stored once at the end. */
+    if (laneCount == 21 || laneCount == 17) {
+        const unsigned char *dataStart = data;
+        const uint64_t *curData0 = (const uint64_t *)data;
+        const uint64_t *curData1 = (const uint64_t *)(data + laneOffsetParallel * SnP_laneLengthInBytes);
+        V128 *statesAsLanes = (V128 *)states->A;
+        V128 s[25];
+
+        KeccakP1600times2_LoadState(s, statesAsLanes);
+        if (laneCount == 21) {
+            while (dataByteLen >= (laneOffsetParallel + 21) * SnP_laneLengthInBytes) {
+                KP1600t2_XorIn(s, curData0, curData1,  0); KP1600t2_XorIn(s, curData0, curData1,  1);
+                KP1600t2_XorIn(s, curData0, curData1,  2); KP1600t2_XorIn(s, curData0, curData1,  3);
+                KP1600t2_XorIn(s, curData0, curData1,  4); KP1600t2_XorIn(s, curData0, curData1,  5);
+                KP1600t2_XorIn(s, curData0, curData1,  6); KP1600t2_XorIn(s, curData0, curData1,  7);
+                KP1600t2_XorIn(s, curData0, curData1,  8); KP1600t2_XorIn(s, curData0, curData1,  9);
+                KP1600t2_XorIn(s, curData0, curData1, 10); KP1600t2_XorIn(s, curData0, curData1, 11);
+                KP1600t2_XorIn(s, curData0, curData1, 12); KP1600t2_XorIn(s, curData0, curData1, 13);
+                KP1600t2_XorIn(s, curData0, curData1, 14); KP1600t2_XorIn(s, curData0, curData1, 15);
+                KP1600t2_XorIn(s, curData0, curData1, 16); KP1600t2_XorIn(s, curData0, curData1, 17);
+                KP1600t2_XorIn(s, curData0, curData1, 18); KP1600t2_XorIn(s, curData0, curData1, 19);
+                KP1600t2_XorIn(s, curData0, curData1, 20);
+                KeccakP1600times2_SHA3_Rounds24(s);
+                curData0 += laneOffsetSerial;
+                curData1 += laneOffsetSerial;
+                dataByteLen -= laneOffsetSerial * SnP_laneLengthInBytes;
+            }
+        } else { /* laneCount == 17 */
+            while (dataByteLen >= (laneOffsetParallel + 17) * SnP_laneLengthInBytes) {
+                KP1600t2_XorIn(s, curData0, curData1,  0); KP1600t2_XorIn(s, curData0, curData1,  1);
+                KP1600t2_XorIn(s, curData0, curData1,  2); KP1600t2_XorIn(s, curData0, curData1,  3);
+                KP1600t2_XorIn(s, curData0, curData1,  4); KP1600t2_XorIn(s, curData0, curData1,  5);
+                KP1600t2_XorIn(s, curData0, curData1,  6); KP1600t2_XorIn(s, curData0, curData1,  7);
+                KP1600t2_XorIn(s, curData0, curData1,  8); KP1600t2_XorIn(s, curData0, curData1,  9);
+                KP1600t2_XorIn(s, curData0, curData1, 10); KP1600t2_XorIn(s, curData0, curData1, 11);
+                KP1600t2_XorIn(s, curData0, curData1, 12); KP1600t2_XorIn(s, curData0, curData1, 13);
+                KP1600t2_XorIn(s, curData0, curData1, 14); KP1600t2_XorIn(s, curData0, curData1, 15);
+                KP1600t2_XorIn(s, curData0, curData1, 16);
+                KeccakP1600times2_SHA3_Rounds24(s);
+                curData0 += laneOffsetSerial;
+                curData1 += laneOffsetSerial;
+                dataByteLen -= laneOffsetSerial * SnP_laneLengthInBytes;
+            }
+        }
+        KeccakP1600times2_StoreState(statesAsLanes, s);
+        return (const unsigned char *)curData0 - dataStart;
+    } else {
+        /* Other rates: AddLanesAll + the verified asm permute. */
+        const unsigned char *dataStart = data;
+        while (dataByteLen >= (laneOffsetParallel + laneCount) * SnP_laneLengthInBytes) {
+            KeccakP1600times2_AddLanesAll(states, data, laneCount, laneOffsetParallel);
+            KeccakP1600times2_PermuteAll_24rounds(states);
+            data += laneOffsetSerial * SnP_laneLengthInBytes;
+            dataByteLen -= laneOffsetSerial * SnP_laneLengthInBytes;
+        }
+        return data - dataStart;
     }
-    return data - dataStart;
 #else
     if (laneCount == 21) {
         /* Optimized path for rate 168 bytes (21 lanes) - SHAKE128/ParallelHash128 */
