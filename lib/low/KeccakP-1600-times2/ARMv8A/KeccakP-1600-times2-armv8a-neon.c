@@ -396,6 +396,19 @@ size_t KeccakF1600times2_FastLoop_Absorb(
     const unsigned char *data,
     size_t dataByteLen)
 {
+#if defined(__ARM_FEATURE_SHA3)
+    /* SHA3-instruction core: absorb full blocks, then run the verified x2 permute.
+       The per-block AddLanesAll + permute is dominated by the (fast) permutation,
+       so the dedicated intrinsic fast-paths below are not needed here. */
+    const unsigned char *dataStart = data;
+    while (dataByteLen >= (laneOffsetParallel + laneCount) * SnP_laneLengthInBytes) {
+        KeccakP1600times2_AddLanesAll(states, data, laneCount, laneOffsetParallel);
+        KeccakP1600times2_PermuteAll_24rounds(states);
+        data += laneOffsetSerial * SnP_laneLengthInBytes;
+        dataByteLen -= laneOffsetSerial * SnP_laneLengthInBytes;
+    }
+    return data - dataStart;
+#else
     if (laneCount == 21) {
         /* Optimized path for rate 168 bytes (21 lanes) - SHAKE128/ParallelHash128 */
         const unsigned char *dataStart = data;
@@ -484,6 +497,7 @@ size_t KeccakF1600times2_FastLoop_Absorb(
         }
         return data - dataStart;
     }
+#endif /* __ARM_FEATURE_SHA3 */
 }
 
 /* ---------------------------------------------------------------- */

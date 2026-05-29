@@ -30,7 +30,11 @@ typedef struct {
     ALIGN(32) uint64x2_t A[25];
 } KeccakP1600times2_states;
 
+#if defined(__ARM_FEATURE_SHA3)
+#define KeccakP1600times2_GetImplementation()   "ARMv8.4-A NEON SHA3 instructions implementation (x2, mlkem-native core)"
+#else
 #define KeccakP1600times2_GetImplementation()   "64-bit optimized ARMv8A NEON assembler + intrinsics implementation"
+#endif
 #define KeccakP1600times2_GetFeatures()         (PlSnP_Feature_Main | PlSnP_Feature_SpongeAbsorb)
 #define KeccakP1600times2_statesAlignment       32
 

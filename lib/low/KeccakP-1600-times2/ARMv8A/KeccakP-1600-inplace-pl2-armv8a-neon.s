@@ -10,6 +10,16 @@
 // and related or neighboring rights to the source code in this file.
 // http://creativecommons.org/publicdomain/zero/1.0/
 //
+
+// When the ARMv8.4-A SHA3 instructions are available, the 24-round permutation
+// is delegated to the verified SHA3 core in KeccakP-1600-times2-x2-v84a-asm.s.
+#if defined(__ARM_FEATURE_SHA3)
+#  if defined(__APPLE__)
+#    define KeccakP1600times2_v84a_permute24_REF _KeccakP1600times2_v84a_permute24
+#  else
+#    define KeccakP1600times2_v84a_permute24_REF KeccakP1600times2_v84a_permute24
+#  endif
+#endif
 // ---
 //
 // This file implements Keccak-p[1600]×2 in a PlSnP-compatible way.
@@ -1114,9 +1124,16 @@ KeccakP1600times2_Permute_RoundConstants4:
 .global _KeccakP1600times2_PermuteAll_24rounds
 .set _KeccakP1600times2_PermuteAll_24rounds, KeccakP1600times2_PermuteAll_24rounds
 KeccakP1600times2_PermuteAll_24rounds:
+#if defined(__ARM_FEATURE_SHA3)
+    // x0 already points at the interleaved state lanes A[0..24]; supply the
+    // round constants and tail-call the verified SHA3 core.
+    adr     x1, KeccakP1600times2_Permute_RoundConstants24
+    b       KeccakP1600times2_v84a_permute24_REF
+#else
     adr     x1, KeccakP1600times2_Permute_RoundConstants24
     mov     w2, #24
     b       KeccakP1600times2_PermuteAll
+#endif
 
 
 //----------------------------------------------------------------------------

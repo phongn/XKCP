@@ -283,6 +283,16 @@ The fragments below allow to select the desired implementation of the permutatio
         <h>lib/low/KeccakP-1600/ARMv8A/KeccakP-1600-SnP.h</h>
     </fragment>
 
+    <!-- Single-state backend using the ARMv8.4-A SHA3 instructions (eor3/rax1/xar/bcax).
+         Permutation core from mlkem-native (Becker-Kannwischer); byte/lane ops shared
+         with the generic 64-bit backend. -->
+    <fragment name="K1600-ARMv8A-SHA3" inherits="K1600-plain-64bits-pure">
+        <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-x1-v84a-asm.s</s>
+        <c gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-x1-v84a.c</c>
+        <h>lib/low/KeccakP-1600/ARMv8A-SHA3/KeccakP-1600-v84a.h</h>
+        <h>lib/low/KeccakP-1600/ARMv8A-SHA3/SnP/KeccakP-1600-SnP.h</h>
+    </fragment>
+
     <fragment name="K1600-AVR8" inherits="common optimized K1600">
         <s>lib/low/KeccakP-1600/AVR8/KeccakP-1600-avr8-fast.s</s>
         <h>lib/low/KeccakP-1600/AVR8/KeccakP-1600-SnP.h</h>
@@ -373,6 +383,16 @@ The fragments below allow to select the desired implementation of the permutatio
         <gcc>-march=armv8.2-a</gcc>
         <s>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-inplace-pl2-armv8a-neon.s</s>
         <c>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-armv8a-neon.c</c>
+        <h>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-SnP.h</h>
+    </fragment>
+
+    <!-- Same x2 helpers, but the 24-round permutation uses the verified ARMv8.4-A
+         SHA3-instruction core (mlkem-native). Built with +sha3 so __ARM_FEATURE_SHA3
+         selects the SHA3 paths in the shared .s/.c sources. -->
+    <fragment name="K1600x2-ARMv8A-SHA3" inherits="K1600x2">
+        <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-inplace-pl2-armv8a-neon.s</s>
+        <s gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-x2-v84a-asm.s</s>
+        <c gcc="-march=armv8.2-a+sha3">lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-armv8a-neon.c</c>
         <h>lib/low/KeccakP-1600-times2/ARMv8A/KeccakP-1600-times2-SnP.h</h>
     </fragment>
 
