@@ -4,6 +4,11 @@ https://github.com/XKCP/XKCP
 
 The Keccak-p permutations, designed by Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.
 
+Implementation by the XKCP contributors, hereby denoted as "the implementer".
+
+For more information, feedback or questions, please refer to the Keccak Team website:
+https://keccak.team/
+
 ARMv8.4-A (SHA3 instructions) single-state backend. The permutation core is the
 formally-verified routine from mlkem-native (Becker-Kannwischer, eprint 2022/1243);
 all byte/lane management is delegated to the generic 64-bit implementation, since

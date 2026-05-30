@@ -421,6 +421,9 @@ void printHelp()
         printf("  --disableAVX2             Disable use of AVX2 implementations\n");
         printf("  --disableAVX512           Disable use of AVX512 implementations\n");
 #endif
+#ifdef XKCP_has_aarch64_CPU_detection
+        printf("  --disableSHA3             Disable use of ARMv8.4-A SHA3 implementations\n");
+#endif
 }
 
 int process(int argc, char* argv[])

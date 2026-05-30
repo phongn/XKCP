@@ -4,6 +4,11 @@ https://github.com/XKCP/XKCP
 
 The Keccak-p permutations, designed by Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.
 
+Implementation by the XKCP contributors, hereby denoted as "the implementer".
+
+For more information, feedback or questions, please refer to the Keccak Team website:
+https://keccak.team/
+
 SnP interface for the ARMv8.4-A SHA3-instructions single-state backend. The
 accelerated 24-round permutation and absorb fast loop come from the SHA3 core;
 all remaining operations are shared with the generic 64-bit backend.

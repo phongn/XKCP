@@ -4,6 +4,11 @@ https://github.com/XKCP/XKCP
 
 The Keccak-p permutations, designed by Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.
 
+Implementation by the XKCP contributors, hereby denoted as "the implementer".
+
+For more information, feedback or questions, please refer to the Keccak Team website:
+https://keccak.team/
+
 Runtime CPU-feature dispatch for AArch64. The single-state Keccak-p[1600]
 permutation uses the verified ARMv8.4-A SHA3 backend (mlkem-native) when the CPU
 exposes the SHA3 extension, otherwise the generic 64-bit backend. Both backends
@@ -32,7 +37,7 @@ int XKCP_enableSHA3 = 0;
 /* ---------------------------------------------------------------- */
 /* CPU feature detection */
 
-static int aarch64_has_sha3(void)
+static int detect_sha3(void)
 {
 #if defined(__APPLE__)
     /* Apple platforms: query the optional ARMv8.2 SHA3 feature. */
@@ -49,6 +54,17 @@ static int aarch64_has_sha3(void)
 #else
     return 0;
 #endif
+}
+
+/* The CPU's SHA3 capability never changes during a run, so detect it once.
+   -1 = not yet detected, 0/1 = cached result. */
+static int g_sha3_present = -1;
+
+static int aarch64_has_sha3(void)
+{
+    if (g_sha3_present < 0)
+        g_sha3_present = detect_sha3();
+    return g_sha3_present;
 }
 
 void XKCP_SetProcessorCapabilities(void)
@@ -110,25 +126,39 @@ void KeccakP1600_StaticInitialize(void)
 
 /* Byte/lane management and 12-round permute are identical (generic 64-bit). */
 void KeccakP1600_Initialize(KeccakP1600_state *state)
-{ KeccakP1600_plain64_Initialize(state); }
+{
+    KeccakP1600_plain64_Initialize(state);
+}
 
 void KeccakP1600_AddBytes(KeccakP1600_state *state, const unsigned char *data, unsigned int offset, unsigned int length)
-{ KeccakP1600_plain64_AddBytes(state, data, offset, length); }
+{
+    KeccakP1600_plain64_AddBytes(state, data, offset, length);
+}
 
 void KeccakP1600_OverwriteBytes(KeccakP1600_state *state, const unsigned char *data, unsigned int offset, unsigned int length)
-{ KeccakP1600_plain64_OverwriteBytes(state, data, offset, length); }
+{
+    KeccakP1600_plain64_OverwriteBytes(state, data, offset, length);
+}
 
 void KeccakP1600_OverwriteWithZeroes(KeccakP1600_state *state, unsigned int byteCount)
-{ KeccakP1600_plain64_OverwriteWithZeroes(state, byteCount); }
+{
+    KeccakP1600_plain64_OverwriteWithZeroes(state, byteCount);
+}
 
 void KeccakP1600_ExtractBytes(const KeccakP1600_state *state, unsigned char *data, unsigned int offset, unsigned int length)
-{ KeccakP1600_plain64_ExtractBytes(state, data, offset, length); }
+{
+    KeccakP1600_plain64_ExtractBytes(state, data, offset, length);
+}
 
 void KeccakP1600_ExtractAndAddBytes(const KeccakP1600_state *state, const unsigned char *input, unsigned char *output, unsigned int offset, unsigned int length)
-{ KeccakP1600_plain64_ExtractAndAddBytes(state, input, output, offset, length); }
+{
+    KeccakP1600_plain64_ExtractAndAddBytes(state, input, output, offset, length);
+}
 
 void KeccakP1600_Permute_12rounds(KeccakP1600_state *state)
-{ KeccakP1600_plain64_Permute_12rounds(state); }
+{
+    KeccakP1600_plain64_Permute_12rounds(state);
+}
 
 /* The 24-round permute, Nrounds(24) and the absorb fast loop are accelerated. */
 void KeccakP1600_Permute_Nrounds(KeccakP1600_state *state, unsigned int nrounds)
@@ -156,23 +186,37 @@ size_t KeccakF1600_FastLoop_Absorb(KeccakP1600_state *state, unsigned int laneCo
 }
 
 size_t KeccakP1600_12rounds_FastLoop_Absorb(KeccakP1600_state *state, unsigned int laneCount, const unsigned char *data, size_t dataByteLen)
-{ return KeccakP1600_12rounds_plain64_FastLoop_Absorb(state, laneCount, data, dataByteLen); }
+{
+    return KeccakP1600_12rounds_plain64_FastLoop_Absorb(state, laneCount, data, dataByteLen);
+}
 
 /* Overwrite-duplex helpers: generic 64-bit (not yet SHA3-accelerated). */
 size_t KeccakP1600_ODDuplexingFastInOut(KeccakP1600_state *state, unsigned int laneCount, const unsigned char *idata, size_t len, unsigned char *odata, const unsigned char *odataAdd, uint64_t trailencAsLane)
-{ return KeccakP1600_plain64_ODDuplexingFastInOut(state, laneCount, idata, len, odata, odataAdd, trailencAsLane); }
+{
+    return KeccakP1600_plain64_ODDuplexingFastInOut(state, laneCount, idata, len, odata, odataAdd, trailencAsLane);
+}
 
 size_t KeccakP1600_12rounds_ODDuplexingFastInOut(KeccakP1600_state *state, unsigned int laneCount, const unsigned char *idata, size_t len, unsigned char *odata, const unsigned char *odataAdd, uint64_t trailencAsLane)
-{ return KeccakP1600_12rounds_plain64_ODDuplexingFastInOut(state, laneCount, idata, len, odata, odataAdd, trailencAsLane); }
+{
+    return KeccakP1600_12rounds_plain64_ODDuplexingFastInOut(state, laneCount, idata, len, odata, odataAdd, trailencAsLane);
+}
 
 size_t KeccakP1600_ODDuplexingFastOut(KeccakP1600_state *state, unsigned int laneCount, unsigned char *odata, size_t len, const unsigned char *odataAdd, uint64_t trailencAsLane)
-{ return KeccakP1600_plain64_ODDuplexingFastOut(state, laneCount, odata, len, odataAdd, trailencAsLane); }
+{
+    return KeccakP1600_plain64_ODDuplexingFastOut(state, laneCount, odata, len, odataAdd, trailencAsLane);
+}
 
 size_t KeccakP1600_12rounds_ODDuplexingFastOut(KeccakP1600_state *state, unsigned int laneCount, unsigned char *odata, size_t len, const unsigned char *odataAdd, uint64_t trailencAsLane)
-{ return KeccakP1600_12rounds_plain64_ODDuplexingFastOut(state, laneCount, odata, len, odataAdd, trailencAsLane); }
+{
+    return KeccakP1600_12rounds_plain64_ODDuplexingFastOut(state, laneCount, odata, len, odataAdd, trailencAsLane);
+}
 
 size_t KeccakP1600_ODDuplexingFastIn(KeccakP1600_state *state, unsigned int laneCount, const uint8_t *idata, size_t len, uint64_t trailencAsLane)
-{ return KeccakP1600_plain64_ODDuplexingFastIn(state, laneCount, idata, len, trailencAsLane); }
+{
+    return KeccakP1600_plain64_ODDuplexingFastIn(state, laneCount, idata, len, trailencAsLane);
+}
 
 size_t KeccakP1600_12rounds_ODDuplexingFastIn(KeccakP1600_state *state, unsigned int laneCount, const uint8_t *idata, size_t len, uint64_t trailencAsLane)
-{ return KeccakP1600_12rounds_plain64_ODDuplexingFastIn(state, laneCount, idata, len, trailencAsLane); }
+{
+    return KeccakP1600_12rounds_plain64_ODDuplexingFastIn(state, laneCount, idata, len, trailencAsLane);
+}

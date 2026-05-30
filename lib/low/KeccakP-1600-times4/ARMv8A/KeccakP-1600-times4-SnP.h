@@ -1,6 +1,11 @@
 /*
 The Keccak-p permutations, designed by Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.
 
+Implementation by the XKCP contributors, hereby denoted as "the implementer".
+
+For more information, feedback or questions, please refer to the Keccak Team website:
+https://keccak.team/
+
 Keccak-p[1600]x4 for AArch64 using the Becker-Kannwischer scalar+NEON hybrid
 permutation core from mlkem-native. Four states are stored sequentially
 (KeccakP1600_state states[4] == uint64_t[100]), matching the core's ABI; all

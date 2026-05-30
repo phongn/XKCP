@@ -1,6 +1,11 @@
 /*
 The Keccak-p permutations, designed by Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.
 
+Implementation by the XKCP contributors, hereby denoted as "the implementer".
+
+For more information, feedback or questions, please refer to the Keccak Team website:
+https://keccak.team/
+
 Keccak-p[1600]x4 for AArch64. Byte/lane management is generated from the generic
 PlSnP-Fallback.inc template (serial fallback on the single-state SnP backend);
 the 24-round permutation and absorb fast-loop use the verified Becker-Kannwischer
@@ -33,7 +38,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #include "PlSnP-Fallback.inc"
 
-#define SnP_laneLengthInBytes           8
+/* SnP_laneLengthInBytes (8) is defined above and left defined by the template;
+   reused below by the absorb fast loops. */
 
 /* Keccak-f[1600] round constants, standard order. */
 static const uint64_t KeccakP1600times4_RC[24] = {
